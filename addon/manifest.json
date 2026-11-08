@@ -1,0 +1,17 @@
+{
+  "manifest_version": 2,
+  "name": "zotero-centers",
+  "version": "1.0.2",
+  "description": "全局搜索、短标题与其他行内编辑、同标题批量合并、目录文献计数和首列 Index，一次安装全部使用。",
+  "author": "Pengsen Ma",
+  "homepage_url": "https://github.com/mapengsen/zotero-centers",
+  "icons": { "48": "modules/title-merge/icons/icon.svg", "96": "modules/title-merge/icons/icon.svg" },
+  "applications": {
+    "zotero": {
+      "id": "zotero-centers@mapengsen.github.io",
+      "update_url": "https://github.com/mapengsen/zotero-centers/releases/latest/download/updates.json",
+      "strict_min_version": "10.0",
+      "strict_max_version": "10.0.*"
+    }
+  }
+}

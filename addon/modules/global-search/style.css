@@ -1,0 +1,13 @@
+.global-search-host { display: flex; flex: 1 1 150px; min-width: 100px; justify-content: center; padding: 0 18px; box-sizing: border-box; }
+.global-search-box { display: flex; align-items: center; width: 100%; max-width: 460px; min-width: 0; position: relative; }
+.global-search-icon { position: absolute; left: 9px; color: var(--fill-secondary, #666); font-size: 21px; pointer-events: none; }
+#global-search-input { box-sizing: border-box; width: 100%; min-width: 0; height: 29px; padding: 3px 29px 3px 31px; border: 1px solid var(--color-quinary, #b9bec5); border-radius: 6px; background: var(--material-toolbar, Field); color: var(--fill-primary, FieldText); font: inherit; }
+#global-search-input:focus { outline: 2px solid #4b8fe5; outline-offset: 0; }
+#global-search-input::-moz-search-clear-button { display: none; }
+.global-search-clear { position: absolute; right: 4px; border: 0; background: transparent; color: var(--fill-secondary, #666); font-size: 18px; cursor: pointer; }
+.global-search-status { flex-shrink: 0; margin-left: 7px; font-size: 11px; color: var(--fill-secondary, #666); }
+.global-search-status[hidden] { display: none !important; }
+@media (max-width: 1050px) {
+  .global-search-host { padding: 0 6px; }
+  #global-search-input { font-size: 11px; }
+}

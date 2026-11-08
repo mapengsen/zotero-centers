@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>同标题合并 / Title Merge</title>
+  <link rel="stylesheet" href="dialog.css" />
+  <script src="dialog.js" defer="defer"></script>
+</head>
+<body>
+  <header><div class="eyebrow">TITLE MERGE · ZOTERO 10</div><h1>同标题，一条文献。</h1>
+    <p>跨类型整理重复记录，让附件、笔记与分类回到一起。</p></header>
+  <section class="controls" aria-label="扫描范围">
+    <label for="scope">扫描范围</label><select id="scope"><option value="selected">所选条目</option><option value="view">当前列表（含当前筛选）</option></select>
+    <button id="scan" class="primary">扫描同标题文献</button>
+  </section>
+  <aside>仅按标题匹配：忽略英文大小写和多余空格。DOI、作者、年份不同也会合并。默认优先：期刊论文 → 会议论文 → 预印本 → 其他。</aside>
+  <div class="summary"><span id="status" role="status" aria-live="polite">选择范围后开始扫描。</span><label><input id="all" type="checkbox" checked="checked" /> 全选</label></div>
+  <main id="groups"><div class="empty">从重复记录，到整洁文库。<small>先扫描和预览，再合并选中的组。</small></div></main>
+  <footer><p id="compat">可独立使用。合并期间会临时停用 Zoplicate，结束后恢复。</p><div class="actions"><button id="archives">打开合并记录目录</button><button id="stop" hidden="hidden">完成当前组后停止</button><button id="merge" class="primary" disabled="disabled">合并选中的组</button></div><p id="result" role="status" aria-live="polite"></p></footer>
+</body></html>

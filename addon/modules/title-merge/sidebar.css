@@ -1,0 +1,33 @@
+.title-merge-sidebar {
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  min-width: 0;
+  padding: 12px;
+  margin: 0;
+  color: var(--fill-primary, CanvasText);
+  background: var(--material-background, Canvas);
+  border-bottom: 1px solid var(--fill-quinary, #dce3ef);
+  font: 12px/1.5 system-ui, "Microsoft YaHei", sans-serif;
+}
+.title-merge-sidebar[hidden], .title-merge-sidebar [hidden] { display: none !important; }
+.title-merge-sidebar-heading { display: block; font-size: 13px; }
+.title-merge-sidebar p { margin: 6px 0; overflow-wrap: anywhere; }
+.title-merge-sidebar-master { opacity: .8; }
+.title-merge-sidebar-actions { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; margin-top: 10px; }
+.title-merge-sidebar button {
+  appearance: none;
+  font: inherit;
+  padding: 7px 9px;
+  border: 1px solid var(--fill-quaternary, #ccd5e3);
+  border-radius: 6px;
+  background: var(--material-background, Canvas);
+  color: inherit;
+  cursor: pointer;
+  min-width: 0;
+}
+.title-merge-sidebar .title-merge-sidebar-bulk { display: block; width: 100%; margin-top: 9px; background: #245edb; border-color: #245edb; color: #fff; }
+.title-merge-sidebar-progress { display: block; width: 100%; height: 7px; margin: 6px 0 8px; accent-color: #245edb; }
+.title-merge-sidebar-stop { width: 100%; }
+.title-merge-sidebar button:disabled { opacity: .5; cursor: default; }
+.title-merge-sidebar button:focus-visible { outline: 2px solid #80aaff; outline-offset: 2px; }
+.title-merge-sidebar-result { margin-bottom: 0 !important; }

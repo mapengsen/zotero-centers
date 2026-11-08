@@ -1,0 +1,12 @@
+{
+  "name": "zotero-centers",
+  "version": "1.0.2",
+  "private": true,
+  "description": "Global search, inline editing, duplicate merging, collection counts and row indices in one Zotero plugin",
+  "scripts": {
+    "check": "python scripts/check.py",
+    "test": "node --test tests/*.test.cjs && python tests/counts_sql_test.py && python tests/search_sql_test.py",
+    "build": "python scripts/build.py"
+  },
+  "license": "MIT"
+}

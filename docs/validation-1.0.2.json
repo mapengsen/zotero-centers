@@ -1,13 +1,13 @@
 {
   "plugin": "zotero-centers",
   "version": "1.0.2",
-  "validatedAt": "2026-11-08T12:02:45.089078+00:00",
+  "validatedAt": "2026-11-08T12:04:03.704927+00:00",
   "platform": "Windows",
   "zotero": "10.0.8",
   "artifact": {
     "file": "zotero-centers-1.0.2.xpi",
-    "size": 37150,
-    "sha256": "d240bc48d0efa327e9f87b2e25d933408fa3ad51c5651e5f2771c8a3b9b709bc",
+    "size": 37132,
+    "sha256": "eb13a6d8033443a59296b06bb796f100949863257f49e6a9cf056af505b95ad2",
     "runtimeSourceMatchesRelease": true,
     "noTestEntrypoint": true
   },
@@ -106,8 +106,8 @@
     "metrics.js": "f16f535df0390837c521117b18c884c4764b030c5cf6cdb0a4d7167849ee5861",
     "modules/global-search/core.js": "8aed96aa6b86d4fb6ff72969a1caba24b7265f4ef35d557de3daac5342c68678",
     "modules/global-search/engine.js": "8f666ef9414805b666fa28761a758bc10ed887a4f964b921dbc88b8b486f86b4",
-    "modules/global-search/plugin.js": "b26d33539d8e7853aa94d4863f0ac050799836b823425e44c25da86835d1f955",
-    "modules/global-search/style.css": "f03daac0d1e6deabbe35eed9e4ee22e3f0baab28134981fea90231d5d6920bc1",
+    "modules/global-search/plugin.js": "1563632582f3bd05ae2504d7767592a57269b8a099662cbd63c27c9ae13e28a3",
+    "modules/global-search/style.css": "d30418ff94c476224cea9b1e87abf507576cc016a8a454604283a7aefd1d8991",
     "modules/inline-extra/inline-extra.js": "a7f980b88fe25bcfca67e80ad2c9d6aeaff407153f5ca1fb03d832c534b6c128",
     "modules/inline-extra/LICENSE": "e75676ff7a61b878298139c6ea0206373e06269331fa068d04361fb474d46649",
     "modules/title-merge/core.js": "d11f5295054b434d6cfd1237b548e212cb0d614332086c28d2a14010167fe5bf",
@@ -118,5 +118,6 @@
     "modules/title-merge/icons/icon.svg": "ad9a119696964f2d6fe68a7badd8b6a0bef738bf531be40da0967100a0913ed2",
     "modules/title-merge/plugin.js": "cb7c0c6c05b71cb8f841554ef820b5676e1f2de5b73fe0de40c126619dff6770",
     "modules/title-merge/sidebar.css": "285611af1c021269b15221b6fd2b74c2bf964d1fb4e360727c5fbea16320439d"
-  }
+  },
+  "runtimeComparison": "Source identical to the tested staging package after CRLF-to-LF text normalization; test-only bootstrap suffix excluded."
 }

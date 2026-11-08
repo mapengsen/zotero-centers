@@ -122,6 +122,8 @@ def release():
     assert result['lifecycleReady'] and result['migrationReady']
     for name, digest in validation['addonSourceSha256'].items():
         assert hashlib.sha256((ROOT / 'addon' / name).read_bytes()).hexdigest() == digest, name
+        committed = subprocess.check_output(['git', 'show', 'HEAD:addon/' + name], cwd=ROOT)
+        assert committed == (ROOT / 'addon' / name).read_bytes(), 'Working source differs from Git blob: ' + name
     assert not subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT, text=True).strip()
     subprocess.run(['python', 'scripts/build.py'], cwd=ROOT, check=True)
     xpi = ROOT / f'dist/zotero-centers-{version}.xpi'

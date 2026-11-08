@@ -57,9 +57,10 @@ var CentersPlugin = {
     const search = this.loadModule("global-search", ["core.js", "engine.js", "plugin.js"], "GlobalSearchPlugin");
     const inline = this.loadModule("inline-extra", ["inline-extra.js"], "InlineExtraPlugin");
     const merge = this.loadModule("title-merge", ["core.js", "engine.js", "plugin.js"], "TitleMergePlugin");
-    this.modules = { search: search.plugin, inline: inline.plugin, merge: merge.plugin, metrics: CentersMetrics };
+    this.modules = { search: search.plugin, inline: inline.plugin, merge: merge.plugin, notes: CentersNotes, metrics: CentersMetrics };
     search.plugin.init({ ...info, rootURI: search.rootURI });
     await merge.plugin.init({ ...info, rootURI: merge.rootURI });
+    await CentersNotes.init(info, inline.plugin);
     CentersMetrics.init(info);
     this.ready = true;
   },
@@ -78,7 +79,7 @@ var CentersPlugin = {
 
   async shutdown(restoreLegacy = false) {
     this.ready = false;
-    for (const name of ["inline", "merge", "search", "metrics"]) await this.modules[name]?.shutdown();
+    for (const name of ["inline", "merge", "search", "metrics", "notes"]) await this.modules[name]?.shutdown();
     this.windows.clear();
     if (restoreLegacy) await this.restoreLegacy();
   }

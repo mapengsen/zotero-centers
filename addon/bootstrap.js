@@ -9,7 +9,7 @@ async function startup(info) {
       ["content", "zotero-centers-merge", info.rootURI + "modules/title-merge/"]
     ]);
   const scope = { Zotero, Services, ChromeUtils, IOUtils, PathUtils };
-  for (const file of ["metrics-core.js", "metrics.js", "centers.js"]) {
+  for (const file of ["notes-core.js", "notes.js", "metrics-core.js", "metrics.js", "centers.js"]) {
     Services.scriptloader.loadSubScript(info.rootURI + file, scope, "UTF-8");
   }
   Centers = scope.CentersPlugin;

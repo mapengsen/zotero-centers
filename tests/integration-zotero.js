@@ -17,12 +17,13 @@ var IntegrationPromise = (async () => {
     results.running = name; await save();
     const scope = { Zotero, Services, ChromeUtils, IOUtils, PathUtils,
       TitleMerge: Centers.modules.merge, InlineExtra: Centers.modules.inline,
+      Centers, Notes: Centers.modules.notes, Metrics: Centers.modules.metrics,
       TEST_ROOT, TEST_RESULT_PATH: PathUtils.join(TEST_ROOT, "test-results", resultFile) };
     Services.scriptloader.loadSubScript(Services.io.newFileURI(Zotero.File.pathToFile(
       PathUtils.join(TEST_ROOT, "tests", file))).spec, scope, "UTF-8");
     await scope.SuitePromise;
     const report = await IOUtils.readJSON(PathUtils.join(TEST_ROOT, "test-results", resultFile));
-    results.suites[name] = { checks: report.checks, failures: report.failures, done: report.done };
+    results.suites[name] = { checks: report.checks, failures: report.failures, done: report.done, persisted: report.persisted };
     for (const text of report.checks) results.checks.push(`${name}: ${text}`);
     for (const error of report.failures) results.failures.push({ ...error, name: `${name}: ${error.name}` });
     await save();
@@ -243,12 +244,15 @@ var IntegrationPromise = (async () => {
       await wait(() => count(parent.id) === 5 && count(child.id) === 2 && count(sibling.id) === 2 && count(grandchild.id) === 1, "Ancestor totals did not follow the moved subtree");
     });
     const info = { id: Centers.id, version: Centers.version, rootURI: Centers.rootURI };
+    await suite("Editable Notes", "suite-notes.js", "notes.json");
     await check("Disable cleans up all combined features and re-enable restores one copy", async () => {
       await Centers.shutdown(false);
       assert(!doc.getElementById("global-search-input") && !doc.getElementById("title-merge-tools")
         && !doc.querySelector(".centers-collection-count"), "Combined UI not removed");
       await Centers.init(info); Centers.addToWindow(w);
       await wait(() => doc.querySelectorAll("#global-search-input").length === 1 && Centers.modules.metrics.columnKey, "Features not restored");
+      const persistedNote = results.suites["Editable Notes"].persisted;
+      assert(persistedNote && Centers.modules.notes.getValue(await Zotero.Items.getAsync(persistedNote.id)) === persistedNote.value, "Notes did not persist across disable and re-enable");
       results.lifecycleReady = true;
     });
     await check("Installing Centers pauses three real legacy addons and disabling restores them", async () => {

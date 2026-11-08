@@ -21,6 +21,22 @@ var CentersMetrics = {
       }
     });
     if (!this.columnKey) throw new Error("无法注册 Index 列。");
+    this.noteColumnKey = Zotero.ItemTreeManager.registerColumn({
+      pluginID: info.id, dataKey: "centersNote", label: "笔记", enabledTreeIDs: ["main"],
+      width: "240", minWidth: 140, flex: 1,
+      dataProvider: item => CentersNotes.getValue(item),
+      renderCell: (rowIndex, data, column, first, doc) => {
+        const cell = doc.createElement("span");
+        cell.className = `cell ${column.className} centersNote`;
+        const label = doc.createElement("span"); label.className = "cell-text";
+        label.textContent = data || "";
+        cell.title = data || "";
+        cell.append(label);
+        return cell;
+      }
+    });
+    if (!this.noteColumnKey) throw new Error("无法注册笔记列。");
+    CentersNotes.columnKey = this.noteColumnKey;
     this.observerID = Zotero.Notifier.registerObserver({ notify: () => this.scheduleCounts() },
       ["item", "collection", "collection-item", "group"], "zotero-centers-counts");
     this.scheduleCounts();
@@ -105,7 +121,7 @@ var CentersMetrics = {
     if (!manager || state.manager === manager) return;
     const key = this.columnKey;
     let index = manager._columns.findIndex(column => column.dataKey === key);
-    if (index < 0) return;
+    if (index < 0 || !manager._columns.some(column => column.dataKey === this.noteColumnKey)) return;
     state.manager = manager;
     this.syncSort(view, manager);
     const metrics = this;
@@ -125,6 +141,14 @@ var CentersMetrics = {
     if (manager._columns[index].hidden) manager.toggleHidden(index);
     index = manager._columns.findIndex(column => column.dataKey === key);
     if (index > 0) manager.setOrder(index, 0);
+    const noteLayoutPref = "extensions.zoteroCenters.notesLayout." + view.id;
+    if (!Zotero.Prefs.get(noteLayoutPref, true)) {
+      const noteIndex = manager._columns.findIndex(column => column.dataKey === this.noteColumnKey);
+      if (manager._columns[noteIndex].hidden) manager.toggleHidden(noteIndex);
+      const publicationIndex = manager._columns.findIndex(column => column.dataKey === "publicationTitle");
+      if (publicationIndex >= 0) manager.setOrder(noteIndex, publicationIndex + 1);
+      Zotero.Prefs.set(noteLayoutPref, true, true);
+    }
     this.syncSort(view, manager);
   },
 
@@ -213,7 +237,9 @@ var CentersMetrics = {
     for (const window of [...this.windows.keys()]) this.removeFromWindow(window);
     if (this.observerID != null) Zotero.Notifier.unregisterObserver(this.observerID);
     if (this.columnKey) Zotero.ItemTreeManager.unregisterColumn(this.columnKey);
+    if (this.noteColumnKey) Zotero.ItemTreeManager.unregisterColumn(this.noteColumnKey);
     this.columnKey = null;
+    this.noteColumnKey = null;
     this.counts.clear(); this.libraryCounts.clear(); this.ready = false;
   }
 };

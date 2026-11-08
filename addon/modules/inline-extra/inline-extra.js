@@ -2,7 +2,7 @@
 var InlineExtraPlugin = (() => {
   const HTML = "http://www.w3.org/1999/xhtml";
   const fields = { extra: { multiline: true }, shortTitle: { multiline: false } };
-  const cellSelector = Object.keys(fields).map(field => `.cell.${field}`).join(', ');
+  const cellSelector = () => Object.keys(fields).map(field => `.cell.${field}`).join(', ');
   const controllers = new Map();
   const copy = {
     zh: {
@@ -26,7 +26,7 @@ var InlineExtraPlugin = (() => {
   function canEdit(item, field = "extra") {
     return !!(item?.id && item.isRegularItem?.() && !item.deleted
       && !item.isFeedItem && fields[field] && item.isEditable()
-      && Zotero.ItemFields.isValidForType(Zotero.ItemFields.getID(field), item.itemTypeID));
+      && (fields[field].adapter || Zotero.ItemFields.isValidForType(Zotero.ItemFields.getID(field), item.itemTypeID)));
   }
 
   class Controller {
@@ -43,8 +43,8 @@ var InlineExtraPlugin = (() => {
       };
       this.style = this.create("style");
       this.style.textContent = `
-        #zotero-items-tree .row:not(.context-row) :is(.cell.extra, .cell.shortTitle) { cursor: text; align-self: stretch; }
-        #zotero-items-tree .row :is(.cell.extra, .cell.shortTitle):hover { box-shadow: inset 0 0 0 1px #4a82e6; }
+        #zotero-items-tree .row:not(.context-row) :is(${cellSelector()}) { cursor: text; align-self: stretch; }
+        #zotero-items-tree .row :is(${cellSelector()}):hover { box-shadow: inset 0 0 0 1px #4a82e6; }
         #inline-extra-editor {
           position: fixed; z-index: 2147483000; box-sizing: border-box;
           display: flex; flex-direction: column; gap: 5px; padding: 5px;
@@ -105,7 +105,7 @@ var InlineExtraPlugin = (() => {
     }
 
     hit(target, point) {
-      let cell = target?.closest?.(cellSelector);
+      let cell = target?.closest?.(cellSelector());
       const row = target?.closest?.(".row");
       const view = this.view;
       if (!row || !view || !row.id.startsWith(view.id + "-row-")) return null;
@@ -208,6 +208,9 @@ var InlineExtraPlugin = (() => {
       view.ensureRowIsVisible(index);
       const cell = this.cellFor(item, view, field);
       if (!cell) return false; // The requested column must be visible.
+      const initial = fields[field].adapter ? await fields[field].adapter.read(item, this.window)
+        : { value: item.getField(field) || "" };
+      if (this.disposed || this.view !== view || !canEdit(item, field)) return false;
       const label = this.text.labels[field];
       const hint = fields[field].multiline ? this.text.help : this.text.singleLineHelp;
       const panel = this.create("div");
@@ -218,7 +221,7 @@ var InlineExtraPlugin = (() => {
       if (!fields[field].multiline) input.type = "text";
       input.setAttribute("aria-label", label);
       input.setAttribute("spellcheck", "false");
-      input.value = item.getField(field) || "";
+      input.value = initial.value;
       const footer = this.create("div");
       footer.className = "inline-extra-footer";
       const help = this.create("span");
@@ -231,7 +234,7 @@ var InlineExtraPlugin = (() => {
       error.setAttribute("role", "alert"); error.hidden = true;
       footer.append(help, save, cancel);
       panel.append(input, footer, error);
-      this.editor = { panel, input, item, view, field, hint, original: input.value, error, help, save, cancel };
+      this.editor = { panel, input, item, view, field, hint, original: input.value, snapshot: initial.snapshot, error, help, save, cancel };
       // Appending within the window keeps text input native and out of the virtualized rows.
       this.document.documentElement.append(panel);
       panel.addEventListener("keydown", event => this.onEditorKey(event));
@@ -326,6 +329,10 @@ var InlineExtraPlugin = (() => {
       try {
         await Zotero.DB.executeTransaction(async () => {
           if (!canEdit(e.item, e.field)) throw new Error(this.text.readonly);
+          if (fields[e.field].adapter) {
+            await fields[e.field].adapter.write(e.item, value, e.snapshot, this.window);
+            return;
+          }
           const current = e.item.getField(e.field) || "";
           if (current !== e.original && current !== value) throw new Error(this.text.conflict);
           if (current === value) return;
@@ -336,11 +343,17 @@ var InlineExtraPlugin = (() => {
             undoActionArgs: { field: Zotero.ItemFields.getLocalizedString(e.field), count: 1 },
           });
         });
+        if (fields[e.field].adapter) {
+          try { await fields[e.field].adapter.refresh(); } catch (error) { Zotero.logError(error); }
+        }
         this.close(e, focusTree);
         return true;
       }
       catch (error) {
         Zotero.logError(error);
+        if (fields[e.field].adapter) {
+          try { await fields[e.field].adapter.rollback(e.item); } catch (reloadError) { Zotero.logError(reloadError); }
+        }
         // The DB rolls back failed saves. Restore the cached item data too.
         if (modified) {
           try { await e.item.reload(["itemData"], true); } catch (reloadError) { Zotero.logError(reloadError); }
@@ -378,6 +391,13 @@ var InlineExtraPlugin = (() => {
   return {
     controllers,
     canEdit,
+    registerField(field, options) {
+      if (!/^[A-Za-z][A-Za-z0-9]*$/.test(field) || fields[field]) throw new Error("Duplicate or invalid inline field");
+      fields[field] = options;
+      copy.zh.labels[field] = options.labels.zh;
+      copy.en.labels[field] = options.labels.en;
+      return () => { delete fields[field]; delete copy.zh.labels[field]; delete copy.en.labels[field]; };
+    },
     addToWindow(window) {
       if (!controllers.has(window)) controllers.set(window, new Controller(window));
     },

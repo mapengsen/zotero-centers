@@ -1,12 +1,12 @@
 # zotero-centers
 
-一个安装包，包含全局搜索、短标题与其他直接编辑、同标题合并、目录文献数量和首列 Index。支持 Zotero **10.0.x**。
+一个安装包，包含全局搜索、短标题/其他/笔记直接编辑、同标题合并、文库与目录文献数量和首列 Index。支持 Zotero **10.0.x**。
 
 ## 安装
 
-1. 从 [GitHub Releases](https://github.com/mapengsen/zotero-centers/releases/latest) 下载 `zotero-centers-1.0.2.xpi`，在 Zotero 中打开「工具 → 插件」。
+1. 从 [GitHub Releases](https://github.com/mapengsen/zotero-centers/releases/latest) 下载 `zotero-centers-1.1.0.xpi`，在 Zotero 中打开「工具 → 插件」。
 2. 点击齿轮，选择「从文件安装插件」，打开下载的 XPI。已安装 Centers 的用户直接覆盖安装，沿用相同插件 ID。
-3. 安装后出现顶部全局搜索框、左侧目录数量及文献列表首列 Index；点击「重复条目」可使用右侧同标题合并入口。
+3. 安装后出现顶部全局搜索框、左侧文库/目录数量、文献列表首列 Index，以及「出版物」后面的「笔记」列；点击「重复条目」可使用右侧同标题合并入口。
 
 只安装这一个插件即可。若之前安装了 Global Search、Inline Extra 或 Title Merge，Centers 会自动停用这三个旧插件，避免重复加载；旧插件保留在插件管理器中。禁用或卸载 Centers 时，会重新启用被它停用的旧插件，原本已经停用的插件保持原状态。
 
@@ -20,11 +20,17 @@ GitHub 正式发行版提供自动更新清单，可通过 Zotero 插件管理�
 
 按整个输入内容的子串匹配，忽略大小写、统一全半角和连续空白。子笔记或批注命中后显示所属文献。不搜索 PDF/EPUB 正文，不做 OCR；排除回收站和订阅源。
 
-### 短标题与其他直接编辑
+### 短标题、其他与笔记直接编辑
 
 单击列表的「短标题」或「其他」单元格即可编辑，包括空值。若没有这两列，右键表头勾选。Enter 或失焦保存，Esc 取消，Tab / Shift+Tab 保存并移至下一篇 / 上一篇的同一字段；F2 编辑所选文献的其他。其他支持 Shift+Enter 换行，中文输入法确认不会提前提交。使用 Zotero 原生撤销 / 重做恢复字段修改。
 
 分别写入原生 `shortTitle` 和 `extra` 字段，支持正常同步。附件、笔记、回收站、只读文库和订阅条目不提供此入口。
+
+**笔记列**默认显示在「出版物」后面，每篇文献初始为空，单击空白单元格即可输入。Enter 或失焦保存，Shift+Enter 换行，Esc 取消，Tab / Shift+Tab 保存并移至下一篇 / 上一篇的笔记。支持中文输入法及原生撤销/重做。表头菜单可隐藏此列，拖动表头可调整位置，列设置会保留。
+
+首次保存非空内容时，创建该文献的一条原生子笔记；打开空白编辑框再取消不会生成笔记。它使用专用自动标签 `zotero-centers-note` 识别，与短标题、其他字段及已有普通子笔记分开保存，随 Zotero 正常同步。禁用插件后，内容仍作为原生子笔记保留。普通笔记不会自动填入新列。
+
+同标题合并会保留各条文献的笔记，并以空行分隔显示在笔记列。编辑合并后的内容时，原笔记副本仍保留为普通子笔记。保存前发现其他地方已修改笔记时，会保留当前草稿并提示冲突。
 
 ### 同标题合并
 
@@ -75,5 +81,7 @@ npm run build
 1.0.1 将目录数量改为累计所有层级子目录的文献总数，同一条目在父目录及多个子目录中只计一次，移除或移动整个子目录后自动更新祖先总数。已在 Zotero 10.0.8 通过 69 项集成检查、18 项核心测试和 4 项 SQLite 测试；发布验证记录见 [docs/validation-1.0.1.json](docs/validation-1.0.1.json)。
 
 1.0.2 在「我的文库」和各群组文库名称后增加整个文库的文献总数，包含未分类文献，重复归类只计一次；新增、删除、恢复后自动更新。正式发行版接入 GitHub 自动更新。验证记录见 [docs/validation-1.0.2.json](docs/validation-1.0.2.json)。
+
+1.1.0 新增默认空白的「笔记」列，支持直接编辑、原生子笔记保存与同步、撤销重做、冲突处理及合并后的笔记保留。验证记录见 [docs/validation-1.1.0.json](docs/validation-1.1.0.json)。
 
 接口参考：[Zotero 10 开发说明](https://www.zotero.org/support/dev/zotero_10_for_developers)、[插件开发文档](https://www.zotero.org/support/dev/client_coding/plugin_development)。

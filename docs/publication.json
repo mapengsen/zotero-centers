@@ -6,5 +6,15 @@
   "sha256": "eb13a6d8033443a59296b06bb796f100949863257f49e6a9cf056af505b95ad2",
   "chineseStoreSubmission": "https://github.com/zotero-chinese/zotero-plugins/issues/357",
   "catalogChange": "https://github.com/zotero-chinese/zotero-plugins/compare/main...mapengsen:zotero-plugins:add-zotero-centers",
-  "scraperPullRequest": "https://github.com/syt2/zotero-addons-scraper/pull/306"
+  "scraperPullRequest": "https://github.com/syt2/zotero-addons-scraper/pull/306",
+  "legacyRepository": "mapengsen/zotero-title-merge",
+  "legacyDeleted": true,
+  "retainedForks": [
+    "mapengsen/zotero-plugins",
+    "mapengsen/zotero-addons-scraper"
+  ],
+  "verifiedAt": "2026-11-08T12:17:49.115519+00:00",
+  "buildCheck": "https://github.com/mapengsen/zotero-centers/actions/runs/42479331112",
+  "storeStatus": "Awaiting maintainer review",
+  "scraperMerged": false
 }

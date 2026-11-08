@@ -119,6 +119,18 @@ var IntegrationPromise = (async () => {
       const cells = doc.querySelectorAll("#zotero-items-tree .centers-index-cell .cell-text");
       assert([...cells].some(cell => cell.textContent === "1"), "Index not in the real table DOM");
     });
+    await check("Index numbers precede native item icons without overlapping tree controls", async () => {
+      for (const item of [a, b, c]) {
+        const index = pane.itemsView.getRowIndexByID(item.id);
+        const cell = doc.getElementById(pane.itemsView.id + "-row-" + index)?.querySelector(".centers-index-cell");
+        const number = cell?.querySelector(".cell-text")?.getBoundingClientRect();
+        const icon = cell?.querySelector(".item-icon")?.getBoundingClientRect();
+        const control = cell?.querySelector(".twisty, .spacer-twisty")?.getBoundingClientRect();
+        assert(number?.width > 0 && icon?.width > 0 && control?.width > 0, "Index components are not visible");
+        assert(control.right <= number.left && number.right < icon.left, "Index is not ordered control, number, icon");
+        assert(icon.right <= cell.getBoundingClientRect().right, "Item icon is clipped");
+      }
+    });
     await check("Index renumbers after sorting and is not itself a sort key", async () => {
       const manager = pane.itemsView.tree._columns;
       const titleIndex = manager._columns.findIndex(column => column.dataKey === "title");
@@ -147,12 +159,27 @@ var IntegrationPromise = (async () => {
     });
     await check("Expanded child items have no number and do not consume an index", async () => {
       const index = pane.itemsView.getRowIndexByID(a.id);
-      if (!pane.itemsView.isContainerOpen(index)) await pane.itemsView.toggleOpenState(index);
+      const clickTwisty = () => {
+        const twisty = doc.getElementById(pane.itemsView.id + "-row-" + index)?.querySelector(".centers-index-cell > .twisty");
+        const rect = twisty?.getBoundingClientRect();
+        assert(rect?.width > 0 && rect.height > 0, "Native expansion arrow is missing");
+        const x = rect.x + rect.width / 2, y = rect.y + rect.height / 2;
+        w.windowUtils.sendMouseEvent("mousedown", x, y, 0, 1, 0);
+        w.windowUtils.sendMouseEvent("mouseup", x, y, 0, 1, 0);
+      };
+      if (pane.itemsView.isContainerOpen(index)) {
+        clickTwisty();
+        await wait(() => !pane.itemsView.isContainerOpen(index), "Native arrow did not collapse children");
+      }
+      clickTwisty();
       await wait(() => pane.getSortedItems().some(item => item.id === pdf.id), "PDF child not expanded");
       for (let i = 0; i < pane.itemsView._rows.length; i++) {
         if (pane.itemsView.getRow(i).ref?.parentItemID) assert(metrics.getIndex(w, i) === "", "Child got an index");
       }
       assert(indexTexts().join() === "1,2,3", "Expanded children shifted document indices");
+      clickTwisty();
+      await wait(() => !pane.itemsView.isContainerOpen(index), "Native arrow did not collapse children");
+      assert(!pane.getSortedItems().some(item => item.id === pdf.id), "Collapsed PDF is still visible");
     });
     await check("Native filtering restarts Index at one without changing folder count", async () => {
       doc.getElementById("zotero-tb-search").searchTextbox.value = "Centers B";

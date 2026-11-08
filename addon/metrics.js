@@ -68,7 +68,15 @@ var CentersMetrics = {
     const doc = window.document;
     const style = doc.createElementNS("http://www.w3.org/1999/xhtml", "style");
     style.id = "zotero-centers-metrics-style";
-    style.textContent = "#zotero-collections-tree .cell:has(> .centers-collection-count) > .cell-text { flex-grow: 0; min-width: 0; } .centers-collection-count { margin-inline-start: 5px; opacity: .7; flex: 0 0 auto; font-variant-numeric: tabular-nums; } .centers-index-cell { font-variant-numeric: tabular-nums; }";
+    style.textContent = `
+      #zotero-collections-tree .cell:has(> .centers-collection-count) > .cell-text { flex-grow: 0; min-width: 0; }
+      .centers-collection-count { margin-inline-start: 5px; opacity: .7; flex: 0 0 auto; font-variant-numeric: tabular-nums; }
+      .centers-index-cell { font-variant-numeric: tabular-nums; }
+      /* Zotero inserts its icon before the text; keep its indent and twisty first. */
+      #zotero-items-tree .centers-index-cell > .cell-text { order: 1; flex: 0 0 auto; }
+      #zotero-items-tree .centers-index-cell > .cell-text:not(:empty) { margin-inline-end: 4px; }
+      #zotero-items-tree .centers-index-cell > .item-icon { order: 2; }
+    `;
     doc.documentElement.append(style);
     const state = { style, cleanups: [], view: null, manager: null, numbers: null, disposed: false };
     this.windows.set(window, state);

@@ -4,7 +4,7 @@
 
 ## 安装
 
-1. 从 [GitHub Releases](https://github.com/mapengsen/zotero-centers/releases/latest) 下载 `zotero-centers-1.1.0.xpi`，在 Zotero 中打开「工具 → 插件」。
+1. 从 [GitHub Releases](https://github.com/mapengsen/zotero-centers/releases/latest) 下载 `zotero-centers-1.1.1.xpi`，在 Zotero 中打开「工具 → 插件」。
 2. 点击齿轮，选择「从文件安装插件」，打开下载的 XPI。已安装 Centers 的用户直接覆盖安装，沿用相同插件 ID。
 3. 安装后出现顶部全局搜索框、左侧文库/目录数量、文献列表首列 Index，以及「出版物」后面的「笔记」列；点击「重复条目」可使用右侧同标题合并入口。
 
@@ -54,7 +54,7 @@ GitHub 正式发行版提供自动更新清单，可通过 Zotero 插件管理�
 
 ### 首列 Index
 
-文献列表最前面增加 **Index**，按当前可见文献顺序显示 `1、2、3……`。排序、搜索和切换目录后重新编号；全局搜索结果同样适用。展开的附件、子笔记、独立笔记和文库分组标题不占编号。点击 Index 表头不改变文献排序。
+文献列表最前面增加 **Index**，按当前可见文献顺序显示 `1、2、3……`，数字在前、文献类型图标在后，附件展开箭头保留在左侧。排序、搜索和切换目录后重新编号；全局搜索结果同样适用。展开的附件、子笔记、独立笔记和文库分组标题不占编号。点击 Index 表头不改变文献排序。
 
 Index 是当前视图的序号，不写入文献字段，也不是永久文献编号。可通过原生表头列菜单隐藏，通过拖动表头调整位置。
 
@@ -83,5 +83,7 @@ npm run build
 1.0.2 在「我的文库」和各群组文库名称后增加整个文库的文献总数，包含未分类文献，重复归类只计一次；新增、删除、恢复后自动更新。正式发行版接入 GitHub 自动更新。验证记录见 [docs/validation-1.0.2.json](docs/validation-1.0.2.json)。
 
 1.1.0 新增默认空白的「笔记」列，支持直接编辑、原生子笔记保存与同步、撤销重做、冲突处理及合并后的笔记保留。验证记录见 [docs/validation-1.1.0.json](docs/validation-1.1.0.json)。
+
+1.1.1 将 Index 列调整为数字在前、文献类型图标在后，保留左侧附件展开箭头。验证记录见 [docs/validation-1.1.1.json](docs/validation-1.1.1.json)。
 
 接口参考：[Zotero 10 开发说明](https://www.zotero.org/support/dev/zotero_10_for_developers)、[插件开发文档](https://www.zotero.org/support/dev/client_coding/plugin_development)。

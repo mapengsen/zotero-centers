@@ -1,9 +1,9 @@
 {
   "repository": "https://github.com/mapengsen/zotero-centers",
-  "release": "https://github.com/mapengsen/zotero-centers/releases/tag/v1.1.0",
-  "version": "1.1.0",
-  "commit": "b0ef278aa46ec3f09a412f0c05ed65397d951184",
-  "sha256": "c602ec5759208036a37d227239289573f8476610c11b0f5741aa0a53b5034ddd",
+  "release": "https://github.com/mapengsen/zotero-centers/releases/tag/v1.1.1",
+  "version": "1.1.1",
+  "commit": "75c05327b3b73d1a56c4f11530bb938034b3f98f",
+  "sha256": "621775ba56105f4e37fbf51aeff777f654ebeb356cd901dc7e715f2b9646f5be",
   "chineseStoreSubmission": "https://github.com/zotero-chinese/zotero-plugins/issues/357",
   "catalogChange": "https://github.com/zotero-chinese/zotero-plugins/compare/main...mapengsen:zotero-plugins:add-zotero-centers",
   "scraperPullRequest": "https://github.com/syt2/zotero-addons-scraper/pull/306",
@@ -13,10 +13,10 @@
     "mapengsen/zotero-plugins",
     "mapengsen/zotero-addons-scraper"
   ],
-  "verifiedAt": "2026-11-08T12:17:49.115519+00:00",
-  "buildCheck": "https://github.com/mapengsen/zotero-centers/actions/runs/42482458511",
+  "verifiedAt": "2026-11-08T13:28:15.993839+00:00",
+  "buildCheck": "https://github.com/mapengsen/zotero-centers/actions/runs/42484949657",
   "storeStatus": "Awaiting maintainer review",
   "scraperMerged": false,
-  "releaseVerifiedAt": "2026-11-08T12:57:36.273018+00:00",
-  "storeUpdatedForVersion": "1.1.0"
+  "releaseVerifiedAt": "2026-11-08T13:28:15.993839+00:00",
+  "storeUpdatedForVersion": "1.1.1"
 }

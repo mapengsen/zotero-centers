@@ -11,7 +11,9 @@ assert manifest['version'] == package['version']
 dist = root / 'dist'; dist.mkdir(exist_ok=True)
 xpi = dist / f'zotero-centers-{manifest["version"]}.xpi'
 with zipfile.ZipFile(xpi, 'w', zipfile.ZIP_DEFLATED) as archive:
-    files = [(p.relative_to(root / 'addon').as_posix(), p) for p in sorted((root / 'addon').rglob('*')) if p.is_file()]
+    # Preserve Windows path-component ordering explicitly on every build platform.
+    paths = sorted((root / 'addon').rglob('*'), key=lambda p: tuple(part.casefold() for part in p.relative_to(root / 'addon').parts))
+    files = [(p.relative_to(root / 'addon').as_posix(), p) for p in paths if p.is_file()]
     files.append(('LICENSE', root / 'LICENSE'))
     for name, path in files:
         info = zipfile.ZipInfo(name, (2026, 1, 1, 0, 0, 0))

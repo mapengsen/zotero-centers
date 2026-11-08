@@ -1,3 +1,10 @@
 {
-  "repository": "https://github.com/mapengsen/zotero-centers"
+  "repository": "https://github.com/mapengsen/zotero-centers",
+  "release": "https://github.com/mapengsen/zotero-centers/releases/tag/v1.0.2",
+  "version": "1.0.2",
+  "commit": "5e91c303bb7c6cb583a0be50c01bd374e34b0dfa",
+  "sha256": "eb13a6d8033443a59296b06bb796f100949863257f49e6a9cf056af505b95ad2",
+  "chineseStoreSubmission": "https://github.com/zotero-chinese/zotero-plugins/issues/357",
+  "catalogChange": "https://github.com/zotero-chinese/zotero-plugins/compare/main...mapengsen:zotero-plugins:add-zotero-centers",
+  "scraperPullRequest": "https://github.com/syt2/zotero-addons-scraper/pull/306"
 }

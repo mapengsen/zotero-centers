@@ -1,9 +1,9 @@
 {
   "repository": "https://github.com/mapengsen/zotero-centers",
-  "release": "https://github.com/mapengsen/zotero-centers/releases/tag/v1.2.2",
-  "version": "1.2.2",
-  "commit": "2b1bd464b1039f5142eaabdd33eef24b65146ad3",
-  "sha256": "1954aed0af534908f7fe7ed5372b122b571ebadbe1aeeaaad1e1d3034e71b0b2",
+  "release": "https://github.com/mapengsen/zotero-centers/releases/tag/v1.2.10",
+  "version": "1.2.10",
+  "commit": "b28c24f23d4f5582e4557162759aced83d9a85fc",
+  "sha256": "73cec54384af57f939c8f24066ec8253b3fc3d7d7b2c16ac03a2d6f333ff3c99",
   "chineseStoreSubmission": "https://github.com/zotero-chinese/zotero-plugins/issues/357",
   "catalogChange": "https://github.com/zotero-chinese/zotero-plugins/compare/main...mapengsen:zotero-plugins:add-zotero-centers",
   "scraperPullRequest": "https://github.com/syt2/zotero-addons-scraper/pull/306",
@@ -13,18 +13,20 @@
     "mapengsen/zotero-plugins",
     "mapengsen/zotero-addons-scraper"
   ],
-  "verifiedAt": "2026-11-12T08:48:57.109000+00:00",
-  "buildCheck": "https://github.com/mapengsen/zotero-centers/actions/runs/43185814702",
-  "storeStatus": "Listed; latest release pending scheduled collection",
+  "verifiedAt": "2026-11-12T13:00:40.553855+00:00",
+  "buildCheck": "https://github.com/mapengsen/zotero-centers/actions/runs/43222642436",
+  "storeStatus": "Listed; version 1.2.10 is available on GitHub and pending scheduled catalog collection",
   "scraperMerged": true,
-  "releaseVerifiedAt": "2026-11-12T08:48:57.109000+00:00",
+  "releaseVerifiedAt": "2026-11-12T13:00:40.553855+00:00",
   "storeUpdatedForVersion": "1.1.1",
   "storeIndexedVersions": [
     "1.1.1"
   ],
   "scraperIndexedVersions": [
-    "1.1.1"
+    "1.2.2"
   ],
   "storeAutomaticUpdates": true,
-  "storeURL": "https://plugins.zotero-chinese.com/"
+  "storeURL": "https://plugins.zotero-chinese.com/",
+  "catalogPullRequest": "https://github.com/zotero-chinese/zotero-plugins/pull/363",
+  "storeCatalog": "https://raw.githubusercontent.com/zotero-chinese/zotero-plugins/gh-pages/plugins.json"
 }

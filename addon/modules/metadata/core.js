@@ -31,7 +31,7 @@ var CentersMetadataCore = (() => {
     const embedded = text.match(/(?:\bdoi:\s*|https?:\/\/(?:dx\.)?doi\.org\/)(10\.\d{4,9}\/[^\s"]+)/i);
     const citationDOI = embedded && normalizeDOI(embedded[1].replace(/[.,;]+$/, ""));
     if (citationDOI) return { kind: "doi", value: citationDOI };
-    return { kind: "title", value: text };
+    return { kind: "title", value: cleanTitleMarkup(text) };
   }
 
   function parseInputs(text) {
@@ -57,8 +57,18 @@ var CentersMetadataCore = (() => {
       .replace(/\s+/g, " ").trim();
   }
 
+  function cleanTitleMarkup(value) {
+    const text = typeof value === "string" || typeof value === "number" ? String(value) : "";
+    const title = text.replace(/<\/?(?:tt|code|monospace)(?:\s+[^<>]*)?>|(?:&lt;|&#0*60;|&#x0*3c;)\/?(?:tt|code|monospace)\s*(?:&gt;|&#0*62;|&#x0*3e;)/gi, "");
+    return title === text ? text : title.replace(/\s+/g, " ").replace(/\s+:/g, ":").trim();
+  }
+
+  function sourceTitle(value) {
+    return plain(cleanTitleMarkup(value));
+  }
+
   function titleKey(value) {
-    return plain(value).normalize("NFKC").toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+    return sourceTitle(value).normalize("NFKC").toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
   }
 
   function similarTitle(a, b) {
@@ -91,6 +101,18 @@ var CentersMetadataCore = (() => {
     return null;
   }
 
+  function expandMedlinePages(value) {
+    const pages = plain(value);
+    const range = pages.match(/^([a-z]{0,3})([1-9]\d{0,7})\s*[-\u2010-\u2015]\s*([a-z]{0,3})(\d{1,8})$/i);
+    if (!range) return pages;
+    const [, prefix, first, endPrefix, last] = range;
+    if (endPrefix && prefix.toLowerCase() !== endPrefix.toLowerCase()) return pages;
+    const expanded = first.slice(0, Math.max(0, first.length - last.length)) + last;
+    if (Number(expanded) <= Number(first)) return pages;
+    if (expanded === last && (endPrefix || !prefix)) return pages;
+    return `${prefix}${first}-${prefix}${expanded}`;
+  }
+
   function equivalent(field, a, b) {
     if (field === "creators") return JSON.stringify(a) === JSON.stringify(b);
     if (field === "title") return titleKey(a) === titleKey(b);
@@ -100,14 +122,89 @@ var CentersMetadataCore = (() => {
     return plain(a).toLowerCase() === plain(b).toLowerCase();
   }
 
-  function recommend(records, mode = "formal") {
+  function nameKey(name) {
+    return titleKey(plain(name).normalize("NFKD").replace(/\p{M}/gu, ""));
+  }
+
+  function sameAuthor(a, b) {
+    if (!a || !b) return false;
+    if (a.name || b.name) {
+      return nameKey(a.name || `${a.firstName} ${a.lastName}`) === nameKey(b.name || `${b.firstName} ${b.lastName}`);
+    }
+    if (nameKey(a.lastName) !== nameKey(b.lastName)) return false;
+    const firstA = nameKey(plain(a.firstName).split(" ")[0]);
+    const firstB = nameKey(plain(b.firstName).split(" ")[0]);
+    return firstA === firstB || ((firstA.length === 1 || firstB.length === 1) && firstA[0] === firstB[0]);
+  }
+
+  function authorsOf(creators = []) {
+    return creators.filter(person => person.creatorType === "author");
+  }
+
+  function addsCollectives(base, candidate) {
+    const groups = new Set((candidate.collectiveAuthors || []).map(nameKey));
+    if (!groups.size) return false;
+    const current = authorsOf(base.fields.creators);
+    const incoming = authorsOf(candidate.fields.creators);
+    if (incoming.length <= current.length) return false;
+    let index = 0;
+    const additions = new Set();
+    for (const author of incoming) {
+      if (sameAuthor(current[index], author)) index++;
+      else {
+        const key = nameKey(author.name);
+        if (!groups.has(key) || additions.has(key) || current.some(person => sameAuthor(person, author))) return false;
+        additions.add(key);
+      }
+    }
+    return index === current.length;
+  }
+
+  function reviewAuthors(ordered) {
+    const candidates = ordered.filter(record => authorsOf(record.fields.creators).length);
+    let preferred = candidates[0];
+    if (!preferred) return { preferred, conflict: false };
+    for (const record of candidates.slice(1)) {
+      if (addsCollectives(preferred, record)) preferred = record;
+    }
+    const first = authorsOf(preferred.fields.creators)[0];
+    const conflict = candidates.some(record => !sameAuthor(first, authorsOf(record.fields.creators)[0])
+      && !addsCollectives(record, preferred));
+    return { preferred, conflict };
+  }
+
+  function omitsSingleFieldAuthor(current, proposed) {
+    const incoming = authorsOf(proposed);
+    return authorsOf(current).some(author => author.name && !incoming.some(person => sameAuthor(author, person)));
+  }
+
+  function journalAbbreviation(records, title, database) {
+    if (!database) return "";
+    const matches = new Map();
+    for (const record of records) {
+      if (record.type !== "journalArticle") continue;
+      for (const issn of record.issns || [record.fields.ISSN]) {
+        const key = plain(issn).toUpperCase();
+        if (!Object.hasOwn(database.byISSN, key)) continue;
+        const value = database.byISSN[key];
+        const normalized = value.toLowerCase();
+        if (!matches.has(normalized)) matches.set(normalized, value);
+      }
+    }
+    if (matches.size) return matches.size === 1 ? matches.values().next().value : "";
+    const key = plain(title).normalize("NFKC").toLowerCase();
+    return Object.hasOwn(database.byTitle, key) ? database.byTitle[key] : "";
+  }
+
+  function recommend(records, mode = "formal", abbreviations) {
     const ordered = records.slice().sort((a, b) => sourcePriority[b.source] - sourcePriority[a.source]);
     const workType = ordered.find(record => record.type && record.type !== "document")?.type || "document";
+    const authorReview = reviewAuthors(ordered);
     const options = {};
-    function add(field, value, record, rank, basis = "") {
+    function add(field, value, source, rank, basis = "") {
       if (field === "creators" ? !value?.length : !plain(value)) return;
       const choices = options[field] ||= [];
-      const citation = basis ? `${record.source} · ${basis}` : record.source;
+      const citation = basis ? `${source} · ${basis}` : source;
       const existing = choices.find(choice => equivalent(field, choice.value, value));
       if (existing) {
         if (!existing.sources.includes(citation)) existing.sources.push(citation);
@@ -129,21 +226,30 @@ var CentersMetadataCore = (() => {
         const suffix = record.doi.slice(record.doi.indexOf("/") + 1);
         const possibleDOISuffix = articleNumber && plain(value).toLowerCase() === suffix && !/^[a-z]{0,3}\d+$/i.test(value);
         const medlineAbbreviation = field === "journalAbbreviation" && record.medlineAbbreviation;
-        const basis = medlineAbbreviation ? "MEDLINE" : possibleDOISuffix ? "登记编号与 DOI 后缀相同，待核对" : articleNumber ? "文章编号" : "";
-        const evidenceRank = (citationField && hasIssue) || medlineAbbreviation ? 60 : 0;
-        add(field, value, record, rank + evidenceRank - (possibleDOISuffix ? 150 : 0), basis);
+        const expandedPages = field === "pages" && record.medlinePagesExpanded;
+        const preferredAuthors = field === "creators" && record === authorReview.preferred;
+        const collectiveEvidence = field === "creators" && record.collectiveAuthors?.length;
+        const basis = medlineAbbreviation ? "MEDLINE" : possibleDOISuffix ? "登记编号与 DOI 后缀相同，待核对"
+          : articleNumber ? "文章编号" : expandedPages ? "MEDLINE 页码展开" : collectiveEvidence ? "含团体作者" : "";
+        const evidenceRank = (citationField && hasIssue) || medlineAbbreviation || preferredAuthors ? 60 : 0;
+        add(field, value, record.source, rank + evidenceRank - (possibleDOISuffix ? 150 : 0), basis);
       }
-      add("DOI", record.doi, record, rank);
+      add("DOI", record.doi, record.source, rank);
       for (const date of record.dates) {
         // Prefer a source's evidence category, then its authority, never the largest year.
-        add("date", date.value, record, dateRank[date.kind] + rank, dateLabel[date.kind]);
+        add("date", date.value, record.source, dateRank[date.kind] + rank, dateLabel[date.kind]);
       }
     }
+    if (workType === "journalArticle") {
+      const abbreviation = journalAbbreviation(ordered, options.container?.[0]?.value, abbreviations);
+      add("journalAbbreviation", abbreviation, "本地期刊简称库", 120, "ISO 4");
+    }
     for (const choices of Object.values(options)) choices.sort((a, b) => b.rank - a.rank);
-    return { workType, options };
+    return { workType, options, authorConflict: authorReview.conflict };
   }
 
-  return { normalizeDOI, input, parseInputs, plain, titleKey, similarTitle, dateParts, isoDate, creator, equivalent, recommend, fields, types };
+  return { normalizeDOI, input, parseInputs, plain, cleanTitleMarkup, sourceTitle, titleKey, similarTitle, dateParts, isoDate, creator, expandMedlinePages,
+    equivalent, omitsSingleFieldAuthor, recommend, fields, types };
 })();
 
 if (typeof module !== "undefined") module.exports = CentersMetadataCore;

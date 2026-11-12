@@ -62,6 +62,7 @@ var CentersPlugin = {
       notes: CentersNotes, metrics: CentersMetrics };
     search.plugin.init({ ...info, rootURI: search.rootURI });
     await merge.plugin.init({ ...info, rootURI: merge.rootURI });
+    await metadata.plugin.init(metadata.rootURI);
     await CentersNotes.init(info, inline.plugin);
     CentersMetrics.init(info);
     this.ready = true;

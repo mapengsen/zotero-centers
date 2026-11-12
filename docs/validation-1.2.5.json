@@ -1,0 +1,52 @@
+{
+  "plugin": "zotero-centers",
+  "version": "1.2.5",
+  "validatedAt": "2026-11-12T11:34:42.908771+00:00",
+  "platform": "Windows",
+  "zotero": "10.0.8",
+  "artifact": {
+    "file": "zotero-centers-1.2.5.xpi",
+    "size": 63281,
+    "sha256": "f2dfb636ae5dba07687eb7d1babce17a9f6606c266a245c176ce012bb591853f",
+    "runtimeSourceMatchesRelease": true,
+    "noTestEntrypoint": true
+  },
+  "integration": {
+    "passed": 1,
+    "failures": [],
+    "checks": [
+      "Proceedings title and volume survive Crossref fallback and conflicting publisher is preserved"
+    ]
+  },
+  "testMethod": "Focused source adapter test and native metadata update in an isolated Zotero profile with recorded NeurIPS source responses. The fallback writes the full proceedings title, separate volume and pages. When Crossref supplies a different publisher, the preview retains the saved publisher and offers the Crossref value. The full integration suite was stopped after the validation scope was narrowed.",
+  "addonSourceSha256": {
+    "bootstrap.js": "8a4fc89f6199ccf0ba3fbe37938737cfa6897ade0e8d812c62e30c1e3b777a33",
+    "centers.js": "d580bbd885f97deb3aa764ed193925efcb9d6ac162107c42a63b811712aef9b2",
+    "manifest.json": "ab2fce2b55f24e8d6f4af335f672a7a8a489871fea99e6f99bba9cfec24f2d67",
+    "metrics-core.js": "1f03c9a4e7bec5a526e1d3023bfaa71a9d2ae305a28a68a0600aef78693b7fb1",
+    "metrics.js": "d148add1175a4a0d55365d18dc31e1cdba06503b75e40201a84937bc3a436ccb",
+    "modules/global-search/core.js": "8aed96aa6b86d4fb6ff72969a1caba24b7265f4ef35d557de3daac5342c68678",
+    "modules/global-search/engine.js": "8f666ef9414805b666fa28761a758bc10ed887a4f964b921dbc88b8b486f86b4",
+    "modules/global-search/plugin.js": "1563632582f3bd05ae2504d7767592a57269b8a099662cbd63c27c9ae13e28a3",
+    "modules/global-search/style.css": "d30418ff94c476224cea9b1e87abf507576cc016a8a454604283a7aefd1d8991",
+    "modules/inline-extra/inline-extra.js": "c1f0ba003c90f2217a2585399b3ae18a772052431975ce6dd1d3672ee0c5fb01",
+    "modules/inline-extra/LICENSE": "e75676ff7a61b878298139c6ea0206373e06269331fa068d04361fb474d46649",
+    "modules/metadata/core.js": "fd43bc165e794916fbb8d6c086e54aaef746b56dd5454b48adf42da75f7033ec",
+    "modules/metadata/dialog.css": "c203c5d1f89a8a2dc7ed499fb901af2290a48043bc10d717d1483cfc48cd50e4",
+    "modules/metadata/dialog.js": "e51dd4dffc42d4eda19e32b0940186918a6a7c51c4276704c9c6a18263fd93fe",
+    "modules/metadata/dialog.xhtml": "2b19c486d96bc21a69daf689ee57db4198881c3c50cf5825bba60d3301f9f086",
+    "modules/metadata/engine.js": "e54dd537c0769d20fa7b9ba2d86496672be1e4e406bddade7ed198170d600808",
+    "modules/metadata/plugin.js": "2183a717a1c869e21079c4aa2902f97b3b38f70e054e47b14f9f7343ee43530d",
+    "modules/metadata/sources.js": "314ec5aaa1bf2072d0f42a03e92f47a6f40411fbeccb063e243eb38aa340e6a9",
+    "modules/title-merge/core.js": "d11f5295054b434d6cfd1237b548e212cb0d614332086c28d2a14010167fe5bf",
+    "modules/title-merge/dialog.css": "dbdf2fb896a0535eebc45f27fc3af70ed6376c835d62d3f7233df00af3ab3d3b",
+    "modules/title-merge/dialog.js": "508ec07c7ce557887fe24c909177ce97e9f0f11fca07f45db2ccb7b804b9ee7b",
+    "modules/title-merge/dialog.xhtml": "a8eda62270c8ace92b2151d89bb620252dfaa76c4c3517e9cc914bd5338538bd",
+    "modules/title-merge/engine.js": "6ed8dd1199882b8c193a948e9d97581688713c33a04f4cd9a71c71a51ec1765a",
+    "modules/title-merge/icons/icon.svg": "ad9a119696964f2d6fe68a7badd8b6a0bef738bf531be40da0967100a0913ed2",
+    "modules/title-merge/plugin.js": "cb7c0c6c05b71cb8f841554ef820b5676e1f2de5b73fe0de40c126619dff6770",
+    "modules/title-merge/sidebar.css": "285611af1c021269b15221b6fd2b74c2bf964d1fb4e360727c5fbea16320439d",
+    "notes-core.js": "07c4cfdbbd20e497aeda68e2b51d635aa12c76e90a1b8999b6a20c45dff00c94",
+    "notes.js": "2e7b459345016e6064f49dd4f3652847d6005dabf655d030eb07b41ab218e1bf"
+  }
+}

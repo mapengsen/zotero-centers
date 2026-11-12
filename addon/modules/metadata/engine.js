@@ -36,6 +36,17 @@ var CentersMetadataEngine = {
       type: data.itemType, title: item.getField("title"), doi: this.itemDOI(item), data, fingerprint };
   },
 
+  async snapshotForQuery(original) {
+    const selected = await Zotero.Items.getAsync(original.id);
+    if (!selected || selected.deleted || selected.key !== original.key || selected.libraryID !== original.libraryID) {
+      throw new Error("原条目已移动或删除，请重新选择文献");
+    }
+    const item = selected.isAttachment() && selected.parentItemID ? await Zotero.Items.getAsync(selected.parentItemID) : selected;
+    if (!this.canEdit(item)) throw new Error("条目已不可编辑");
+    await item.loadAllData();
+    return this.snapshot(item);
+  },
+
   fieldID(type, field) {
     if (field === "container") field = ({ journalArticle: "publicationTitle", conferencePaper: "proceedingsTitle",
       bookSection: "bookTitle", preprint: "repository", dataset: "repository" })[type];
@@ -44,27 +55,42 @@ var CentersMetadataEngine = {
   },
 
   preview(row, candidate, mode, changeType) {
-    const recommendation = this.core.recommend(candidate.records, mode);
+    const recommendation = this.core.recommend(candidate.records, mode, this.journalAbbreviations);
     const original = row.original && !row.original.attachment ? row.original : null;
     const type = original && !changeType ? original.type : recommendation.workType;
+    const lacksIssueDate = recommendation.workType === "journalArticle"
+      && !candidate.records.some(record => record.dates.some(date => date.kind === "issue" || date.kind === "print"));
+    const dateConflict = lacksIssueDate && new Set((recommendation.options.date || []).map(option => option.value.slice(0, 4))).size > 1;
+    const preserveIssueDate = lacksIssueDate && mode === "formal"
+      && Boolean(original?.data.date && original.data.volume && original.data.issue);
     const fields = [];
+    let omitsSingleFieldAuthor = false;
+    let conferencePublisherConflict = false;
     for (const [name, label] of Object.entries(this.core.fields)) {
-      const options = recommendation.options[name];
+      let options = recommendation.options[name];
       if (!options) continue;
       const id = name === "creators" ? null : this.fieldID(type, name);
       if (id === false) continue;
       const originalID = original && name !== "creators" && this.fieldID(original.type, name);
       const current = name === "creators" ? original?.data.creators || [] :
         originalID ? original.data[Zotero.ItemFields.getName(originalID)] || "" : "";
+      const cleaned = name === "title" ? this.core.cleanTitleMarkup(current) : current;
+      const titleNeedsCleanup = cleaned !== current && this.core.equivalent(name, cleaned, options[0].value);
+      if (titleNeedsCleanup && cleaned !== options[0].value) {
+        options = [{ ...options[0], value: cleaned, sources: ["清理当前标题"] }, ...options.slice(1)];
+      }
       const compatibleDate = name === "date" && this.core.isoDate(current).startsWith(options[0].value + "-");
-      const alreadyCurrent = original && (this.core.equivalent(name, current, options[0].value) || compatibleDate);
-      const preferred = alreadyCurrent || options[0].rank < 0 ? -1 : 0;
+      const alreadyCurrent = original && !titleNeedsCleanup && (this.core.equivalent(name, current, options[0].value) || compatibleDate);
+      if (original && name === "creators") omitsSingleFieldAuthor = this.core.omitsSingleFieldAuthor(current, options[0].value);
+      const authorNeedsReview = name === "creators" && original && (recommendation.authorConflict || omitsSingleFieldAuthor);
+      const publisherNeedsReview = name === "publisher" && type === "conferencePaper" && Boolean(current) && !alreadyCurrent;
+      if (publisherNeedsReview) conferencePublisherConflict = true;
+      const dateNeedsReview = name === "date" && (dateConflict || preserveIssueDate);
+      const preferred = alreadyCurrent || authorNeedsReview || publisherNeedsReview || dateNeedsReview || options[0].rank < 0 ? -1 : 0;
       fields.push({ name, label, id, options, current, preferred });
     }
-    const lacksIssueDate = recommendation.workType === "journalArticle"
-      && !candidate.records.some(record => record.dates.some(date => date.kind === "issue" || date.kind === "print"));
-    const dateConflict = lacksIssueDate && new Set((recommendation.options.date || []).map(option => option.value.slice(0, 4))).size > 1;
-    return { type, suggestedType: recommendation.workType, fields, original, lacksIssueDate, dateConflict,
+    return { type, suggestedType: recommendation.workType, fields, original, lacksIssueDate, dateConflict, preserveIssueDate,
+      authorConflict: recommendation.authorConflict, omitsSingleFieldAuthor, conferencePublisherConflict,
       titleMismatch: original && !this.core.similarTitle(original.title, recommendation.options.title[0].value),
       doiChanged: original?.doi && original.doi !== candidate.doi,
       missingTypeFields: original && type !== original.type ? Object.keys(original.data)
@@ -92,13 +118,18 @@ var CentersMetadataEngine = {
     await IOUtils.writeJSON(path, { version: 1, itemID: item.id, libraryID: item.libraryID, data: original.data }, { tmpPath: path + ".tmp" });
   },
 
-  setCreators(item, creators) {
-    const type = item.itemTypeID;
+  mergedCreators(type, current, creators) {
     const incoming = creators.filter(person => Zotero.CreatorTypes.isValidForItemType(Zotero.CreatorTypes.getID(person.creatorType), type));
+    if (!incoming.length) return current;
     const roles = new Set(incoming.map(person => person.creatorType));
-    if (!incoming.length) return;
-    const preserved = item.getCreatorsJSON().filter(person => !roles.has(person.creatorType));
-    item.setCreators([...incoming, ...preserved]);
+    return [...incoming, ...current.filter(person => !roles.has(person.creatorType))];
+  },
+
+  fieldChanges(preview, field, choice) {
+    if (!preview.original || preview.type !== preview.original.type) return true;
+    if (field.name !== "creators") return choice !== field.current;
+    const actual = this.mergedCreators(Zotero.ItemTypes.getID(preview.type), field.current, choice);
+    return !this.core.equivalent("creators", field.current, actual);
   },
 
   async save(plan) {
@@ -110,7 +141,7 @@ var CentersMetadataEngine = {
       return await Zotero.DB.executeTransaction(async () => {
         item = original && await Zotero.Items.getAsync(original.id);
         if (original && (!this.canEdit(item) || item.key !== original.key || this.snapshot(item).fingerprint !== original.fingerprint)) {
-          throw new Error("条目自打开窗口后已变化，请重新打开预览");
+          throw new Error("条目在预览后已变化，请重新查询并预览");
         }
         const currentDOI = original?.doi || "";
         const doiField = preview.fields.find(field => field.name === "DOI");
@@ -144,7 +175,9 @@ var CentersMetadataEngine = {
         const target = created || item;
         for (const field of preview.fields) {
           if (!Object.hasOwn(fields, field.name)) continue;
-          if (field.name === "creators") this.setCreators(target, fields.creators);
+          if (field.name === "creators") {
+            target.setCreators(this.mergedCreators(target.itemTypeID, target.getCreatorsJSON(), fields.creators));
+          }
           else target.setField(field.id, fields[field.name]);
         }
         // A legacy DOI in Extra should not contradict the new native DOI field.

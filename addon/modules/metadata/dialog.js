@@ -52,7 +52,8 @@ window.addEventListener("DOMContentLoaded", () => {
     const queried = row.candidate?.statuses || row.lookup?.statuses || [];
     const refs = new Map(row.candidate?.records.map(record => [record.source, record.ref]) || []);
     const detail = node("details");
-    detail.append(node("summary", "查询来源"));
+    const unavailable = queried.filter(entry => entry.status === "已限流" || entry.status === "查询失败").length;
+    detail.append(node("summary", unavailable ? `查询来源（${unavailable} 个暂不可用）` : "查询来源"));
     const list = node("p", undefined, "muted");
     for (const { source, status } of queried) {
       if (list.childNodes.length) list.append(" · ");
@@ -65,7 +66,35 @@ window.addEventListener("DOMContentLoaded", () => {
     parent.append(detail);
   }
 
-  function renderFields(card, row) {
+  function requiresValue(preview, name) {
+    return (!preview.original && (name === "title" || name === "DOI")) || (preview.doiChanged && name === "DOI");
+  }
+
+  function selectedOptionIndex(row, field) {
+    let index = field.preferred;
+    if (Object.hasOwn(row.choices, field.name)) {
+      const stored = row.choices[field.name];
+      if (stored === null) index = -1;
+      else {
+        const chosen = field.options.findIndex(option => core.equivalent(field.name, stored, option.value));
+        if (chosen >= 0) index = chosen;
+      }
+    }
+    return index < 0 && requiresValue(row.preview, field.name) ? 0 : index;
+  }
+
+  function plannedValue(row, field) {
+    const choice = field.options[selectedOptionIndex(row, field)]?.value;
+    return choice != null && engine.fieldChanges(row.preview, field, choice) ? choice : undefined;
+  }
+
+  function hasChanges(row) {
+    const { preview } = row;
+    return Boolean(preview && (preview.type !== preview.original?.type
+      || preview.fields.some(field => plannedValue(row, field) !== undefined)));
+  }
+
+  function renderFields(card, row, updateSelection) {
     const { preview } = row;
     const detail = node("details", undefined, "fields");
     detail.open = row.expanded;
@@ -83,24 +112,17 @@ window.addEventListener("DOMContentLoaded", () => {
       const select = node("select");
       select.dataset.field = field.name;
       select.setAttribute("aria-label", field.label);
-      const mandatory = (!preview.original && ["title", "DOI"].includes(field.name)) || (preview.doiChanged && field.name === "DOI");
-      if (!mandatory) addOption(select, preview.original ? "保留当前值" : "留空", -1);
+      if (!requiresValue(preview, field.name)) addOption(select, preview.original ? "保留当前值" : "留空", -1);
       for (const [index, option] of field.options.entries()) {
         addOption(select, `${index === 0 && option.rank >= 0 ? "推荐 · " : ""}${valueLabel(option.value)} 〔${option.sources.join("、")}〕`, index);
       }
-      let index = field.preferred;
-      if (Object.hasOwn(row.choices, field.name)) {
-        const stored = row.choices[field.name];
-        index = stored === null ? -1 : field.options.findIndex(option => core.equivalent(field.name, stored, option.value));
-        if (index < 0 && stored !== null) index = field.preferred;
-      }
-      if (index < 0 && mandatory) index = 0;
-      select.value = index;
+      select.value = selectedOptionIndex(row, field);
       select.title = select.selectedOptions[0]?.textContent || "";
       select.disabled = Boolean(busy || row.saved || row.duplicate);
       select.addEventListener("change", () => {
         row.choices[field.name] = Number(select.value) < 0 ? null : field.options[Number(select.value)].value;
         select.title = select.selectedOptions[0]?.textContent || "";
+        updateSelection();
         updateApply();
       });
       cell.append(select);
@@ -117,8 +139,14 @@ window.addEventListener("DOMContentLoaded", () => {
     const include = node("input");
     include.type = "checkbox";
     include.className = "include";
-    include.checked = row.included;
-    include.disabled = Boolean(busy || !row.preview || row.duplicate || row.saved);
+    const unchanged = node("p", "没有待写入的改动", "muted no-changes");
+    const updateSelection = () => {
+      const pending = hasChanges(row);
+      include.checked = Boolean(row.included && pending);
+      include.disabled = Boolean(busy || row.duplicate || row.saved || !pending);
+      unchanged.hidden = !row.preview || row.duplicate || row.saved || pending;
+    };
+    updateSelection();
     include.setAttribute("aria-label", "写入此条目");
     include.addEventListener("change", () => { row.included = include.checked; updateApply(); });
     heading.append(include, node("h2", row.original?.title || row.preview?.fields.find(field => field.name === "title")?.options[0].value || row.query.value));
@@ -177,14 +205,21 @@ window.addEventListener("DOMContentLoaded", () => {
     if (row.resolved.unresolvedVersion) warnings.push("出版版本关系需要人工确认");
     if (row.preview.titleMismatch) warnings.push("推荐标题与当前标题差异较大，请核对后勾选");
     if (row.preview.doiChanged) warnings.push(`当前 DOI 为 ${row.original.doi}，请核对版本后勾选`);
+    if (row.preview.authorConflict) warnings.push(row.preview.original
+      ? "来源第一作者有冲突，已默认保留当前作者，请核对作者栏"
+      : "来源第一作者有冲突，请核对作者栏后勾选");
+    if (row.preview.omitsSingleFieldAuthor) warnings.push("推荐记录缺少当前的单栏作者，已默认保留当前作者");
+    if (row.preview.conferencePublisherConflict) warnings.push("会议论文的出版社与来源记录不同，已默认保留当前值");
     if (row.preview.dateConflict) warnings.push("来源年份有冲突，卷期日期待人工确认");
+    else if (row.preview.preserveIssueDate) warnings.push("暂未查到卷期日期，已默认保留当前日期");
     else if (row.preview.lacksIssueDate) warnings.push("暂未查到卷期或纸本日期");
     if (row.preview.missingTypeFields.length) warnings.push(`类型转换可能移除专属字段（${row.preview.missingTypeFields.join("、")}），原值保存在本地备份`);
     if (row.original?.attachment) warnings.push("会创建文献条目并关联原 PDF，请核对后勾选");
     if (row.duplicate) warnings.push("目标文库已有此 DOI");
     if (row.message) warnings.push(row.message);
     if (warnings.length) card.append(node("p", warnings.join("。"), row.saved ? "muted" : "warning"));
-    renderFields(card, row);
+    card.append(unchanged);
+    renderFields(card, row, updateSelection);
     showSources(card, { ...row, lookup: row.resolved });
     return card;
   }
@@ -194,12 +229,12 @@ window.addEventListener("DOMContentLoaded", () => {
     updateApply();
   }
 
-  function eligible(row) { return row.preview && row.included && !row.duplicate && !row.saved; }
+  function eligible(row) { return row.included && !row.duplicate && !row.saved && hasChanges(row); }
 
   function updateApply() {
     const count = rows.filter(eligible).length;
     applyButton.disabled = Boolean(busy) || !count;
-    applyButton.textContent = count ? `写入 ${count} 条` : "写入所选条目";
+    applyButton.textContent = count ? `写入 ${count} 条` : "无待写入条目";
   }
 
   async function chooseVersion(row, index) {
@@ -210,8 +245,9 @@ window.addEventListener("DOMContentLoaded", () => {
     row.message = "";
     const changedDOI = row.candidate.doi !== row.original?.doi;
     row.duplicate = changedDOI && (await engine.findDuplicates(row.original?.libraryID || destination.libraryID, row.candidate.doi, row.original?.id)).length > 0;
+    const unreviewedNewAuthors = !row.preview.original && row.preview.authorConflict;
     row.included = !row.duplicate && !row.preview.titleMismatch && !row.preview.doiChanged && !row.original?.attachment
-      && !row.resolved.unresolvedVersion && !row.preview.dateConflict && !row.changeType;
+      && !row.resolved.unresolvedVersion && !row.changeType && !unreviewedNewAuthors;
   }
 
   async function selectVersion(row, index) {
@@ -268,7 +304,10 @@ window.addEventListener("DOMContentLoaded", () => {
     async function worker() {
       while (!stopped && next < rows.length) {
         const row = rows[next++];
-        try { await searchRow(row, row.query); }
+        try {
+          if (row.original) row.original = await engine.snapshotForQuery(row.original);
+          await searchRow(row, row.query);
+        }
         catch (error) { row.included = false; row.message = error.message; }
         if (!window.closed) status(`已查询 ${++done} / ${rows.length}`);
       }
@@ -284,8 +323,8 @@ window.addEventListener("DOMContentLoaded", () => {
   function planFor(row) {
     const fields = {};
     for (const field of row.preview.fields) {
-      const choice = Object.hasOwn(row.choices, field.name) ? row.choices[field.name] : field.options[field.preferred]?.value;
-      if (choice != null) fields[field.name] = choice;
+      const choice = plannedValue(row, field);
+      if (choice !== undefined) fields[field.name] = choice;
     }
     return { row, original: row.original, destination, candidate: row.candidate, preview: row.preview, fields };
   }
@@ -297,18 +336,19 @@ window.addEventListener("DOMContentLoaded", () => {
     stopped = false;
     setBusy("save");
     render();
-    let success = 0, failure = 0;
+    let success = 0, unchanged = 0, failure = 0;
     status(`正在写入 ${plans.length} 条…`);
     try {
       await plugin.apply(plans, (plan, result) => {
         if (result.error) failure++;
+        else if (result.action === "无差异") unchanged++;
         else success++;
         plan.row.saved = !result.error;
         plan.row.included = false;
         plan.row.message = result.error || result.action;
-        if (!window.closed) status(`已处理 ${success + failure} / ${plans.length}`);
+        if (!window.closed) status(`已处理 ${success + unchanged + failure} / ${plans.length}`);
       }, () => stopped || window.closed);
-      if (!window.closed) status(`完成 ${success} 条，失败或跳过 ${failure} 条${stopped ? "，已停止" : ""}。`);
+      if (!window.closed) status(`完成 ${success} 条${unchanged ? `，无差异 ${unchanged} 条` : ""}，失败或跳过 ${failure} 条${stopped ? "，已停止" : ""}。`);
     } catch (error) { if (!window.closed) status(error.message); }
     finally { if (!window.closed) { setBusy(""); render(); } }
   }

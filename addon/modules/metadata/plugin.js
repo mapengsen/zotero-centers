@@ -6,6 +6,17 @@ var CentersMetadataPlugin = {
   pending: null,
   dialogURL: "chrome://zotero-centers-metadata/content/dialog.xhtml",
 
+  async init(rootURI) {
+    try {
+      const contents = await Zotero.File.getResourceAsync(rootURI + "journal-abbreviations.json");
+      const data = JSON.parse(contents);
+      if (!data.byISSN || !data.byTitle) throw new Error("期刊简称库缺少索引");
+      this.engine.journalAbbreviations = data;
+    } catch (error) {
+      Zotero.logError(error);
+    }
+  },
+
   addToWindow(window) {
     if (this.windows.has(window)) return;
     const doc = window.document;

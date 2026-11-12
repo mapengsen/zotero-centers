@@ -24,7 +24,15 @@ GitHub 正式发行版提供自动更新清单，可通过 Zotero 插件管理�
 
 查询会把标识符或标题发送给 Crossref、Europe PMC、DataCite、OpenAlex、Semantic Scholar 或 DBLP。预览显示每个字段的候选值和来源，也可以保留当前值。默认优先推荐有卷期或纸本证据的日期，可以切换到「在线发表优先」。如果来源明确给出预印本和出版版的 DOI 关系，可核对并选择出版版。通过「查询来源」中的 DOI 链接可打开出版页面核对。
 
-期刊文章的「出版物」和「期刊简称」分别核对。简称优先采用 MEDLINE 提供的值，来源提供其他简称时也可在预览选择。
+期刊简称优先查内置的 ISO 4 简称库。先按 ISSN 查询，未命中再按期刊全名精确查找。本地库命中的简称在预览中标为「本地期刊简称库 · ISO 4」。未命中时继续显示 MEDLINE 和其他查询来源提供的简称。
+
+简称库使用 [Wikidata 的 ISO 4 记录](https://www.wikidata.org/wiki/Property:P1160)及 [JabRef 的生命科学和 ACS 刊名表](https://github.com/JabRef/abbrv.jabref.org/tree/main/journals)，两者以 CC0 发布。Journal of Open Source Software 采用 [ISSN Portal 登记的简称](https://publishers.issn.org/resource/ISSN-L/2475-9066)。维护者可运行 `python scripts/update-journal-abbreviations.py` 更新内置数据。
+
+从 OpenAlex 查询会议论文时，读取记录中的原始论文集名。NeurIPS 的论文集名和卷号分别写入各自字段。来源与已有出版社不一致时，预览默认保留已有值，仍可手动选择来源值。
+
+MEDLINE 的缩写页码会按可识别的范围展开，例如 `W160-5` 展开为 `W160-W165`。「写入」只计入勾选且有待写入改动的条目，重新查询时会与文库最新值比较。
+
+Crossref 和 Europe PMC 明确登记的团体作者会按来源顺序写入 Zotero 的单栏作者。个人作者顺序相同时，推荐包含已登记团体作者的完整名单。第一作者存在其他冲突，或推荐记录缺少已有的单栏作者时，预览提示核对，并默认保留已有作者。
 
 如果登记的文章编号与 DOI 后缀相同且像出版商内部编号，优先推荐其他来源提供的页码或文章编号；只有登记值时，默认留空或保留当前值，等待核对。
 

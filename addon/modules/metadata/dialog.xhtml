@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>文献元数据 · Zotero Centers</title>
+  <link rel="stylesheet" href="dialog.css" />
+  <script src="dialog.js" defer="defer"></script>
+</head>
+<body>
+  <header>
+    <h1 id="heading">文献元数据</h1>
+    <p id="destination"></p>
+  </header>
+  <section id="queries">
+    <div id="import-input">
+      <div class="controls">
+        <button id="import-file">从文件导入…</button>
+        <span class="muted">BibTeX、RIS、Zotero RDF 等</span>
+      </div>
+      <label for="entries">DOI、PMID、arXiv ID、标题或参考文献（每行一条）</label>
+      <textarea id="entries" rows="4" placeholder="10.1093/nar/gkz1014&#10;PMID: 31680159&#10;Attention Is All You Need"></textarea>
+    </div>
+    <div id="update-inputs"></div>
+    <div class="controls">
+      <label for="date-mode">日期偏好</label>
+      <select id="date-mode"><option value="formal">正式卷期优先</option><option value="online">在线发表优先</option></select>
+      <button id="lookup" class="primary">查询并预览</button>
+      <button id="stop" hidden="hidden">停止</button>
+    </div>
+    <p class="muted">查询会将标识符或标题发送给 Crossref、Europe PMC、DataCite、OpenAlex、Semantic Scholar 或 DBLP。</p>
+  </section>
+  <main id="results" aria-label="查询结果"></main>
+  <footer>
+    <p id="status" role="status" aria-live="polite"></p>
+    <button id="apply" class="primary" disabled="disabled">写入所选条目</button>
+  </footer>
+</body>
+</html>

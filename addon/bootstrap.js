@@ -6,7 +6,8 @@ async function startup(info) {
   chromeHandle = Components.classes["@mozilla.org/addons/addon-manager-startup;1"]
     .getService(Components.interfaces.amIAddonManagerStartup)
     .registerChrome(Services.io.newURI(info.rootURI + "manifest.json"), [
-      ["content", "zotero-centers-merge", info.rootURI + "modules/title-merge/"]
+      ["content", "zotero-centers-merge", info.rootURI + "modules/title-merge/"],
+      ["content", "zotero-centers-metadata", info.rootURI + "modules/metadata/"]
     ]);
   const scope = { Zotero, Services, ChromeUtils, IOUtils, PathUtils };
   for (const file of ["notes-core.js", "notes.js", "metrics-core.js", "metrics.js", "centers.js"]) {

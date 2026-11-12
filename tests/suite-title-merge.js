@@ -202,7 +202,7 @@ var SuitePromise = (async () => {
     });
     const waitUntil = async (predicate, message) => {
       for(let i=0;i<200;i++) {
-        if(predicate()) return;
+        if(await predicate()) return;
         await Zotero.Promise.delay(100);
       }
       throw new Error(message);
@@ -295,8 +295,20 @@ var SuitePromise = (async () => {
     await batchAddon.enable();
     await w.ZoteroPane.collectionsView.selectByID('D'+Zotero.Libraries.userLibraryID);
     await w.ZoteroPane.itemsView.waitForLoad();
-    w.document.getElementById('zotero-tb-search').searchTextbox.value='Batch current';
-    await w.ZoteroPane.search();
+    const filterBatch = async (text, records, requiredRecords = records) => {
+      const ids = new Set(records.filter(item => !item.deleted).map(item => item.id));
+      const pane = w.ZoteroPane;
+      const search = w.document.getElementById('zotero-tb-search').searchTextbox;
+      await waitUntil(async () => {
+        // The Zoplicate enable/refresh can replace the duplicate view after the search call.
+        if (pane.itemsView?.viewMode !== 'duplicates') return false;
+        search.value = text;
+        await pane.search();
+        const visible = new Set(pane.getSortedItems().filter(item => item.isRegularItem()).map(item => item.id));
+        return [...visible].every(id => ids.has(id)) && requiredRecords.every(item => visible.has(item.id));
+      }, 'Filtered duplicate rows did not settle for ' + text);
+    };
+    await filterBatch('Batch current', batchPairs.flat());
     await w.ZoteroPane.itemsView.selectItems(batchPairs[0].map(item=>item.id));
     await waitUntil(()=>sidebar().visible&&!sidebar().scanning,'Batch sidebar not ready');
     const batchPanel=()=>sidebar().panels.get('zotero-item-message');
@@ -318,8 +330,7 @@ var SuitePromise = (async () => {
       }finally{engine.scan=realScan;}
     });
     await check('Bulk merging stops after the current group and restores Zoplicate',async()=>{
-      w.document.getElementById('zotero-tb-search').searchTextbox.value='Batch current';
-      await w.ZoteroPane.search();
+      await filterBatch('Batch current', batchPairs.flat());
       assert((await engine.scan(w.ZoteroPane.getSortedItems())).length===4,'Initial filtered batch scope was incorrect');
       const realMerge=engine.mergeGroup;let merged=0;
       engine.mergeGroup=async function(...args){
@@ -339,8 +350,7 @@ var SuitePromise = (async () => {
     await check('One bulk click completes every group in the filtered list with progress and no extra clicks',async()=>{
       // Zoplicate's restore refresh can clear the native quick search. Reapply the
       // user's filter before the new click; this tests that click's frozen scope.
-      w.document.getElementById('zotero-tb-search').searchTextbox.value='Batch current';
-      await w.ZoteroPane.search();
+      await filterBatch('Batch current', batchPairs.flat(), batchPairs.filter(pair => pair.every(item => !item.deleted)).flat());
       w.ZoteroPane.itemsView.selection.clearSelection();
       await w.ZoteroPane.itemSelected();
       await waitUntil(()=>!sidebar().scanning&&!batchPanel().bulk.disabled,'Bulk action required a selection');
@@ -369,8 +379,7 @@ var SuitePromise = (async () => {
       }finally{engine.mergeGroup=realMerge;}
     });
     await check('Bulk action reports no title matches without merging same-DOI different-title records',async()=>{
-      w.document.getElementById('zotero-tb-search').searchTextbox.value='No match';
-      await w.ZoteroPane.search();
+      await filterBatch('No match', noMatchPair);
       await w.ZoteroPane.itemsView.selectItems(noMatchPair.map(item=>item.id));
       await waitUntil(()=>sidebar().viewCount>=2&&!sidebar().scanning,'No-match view not ready');
       batchPanel().bulk.click();

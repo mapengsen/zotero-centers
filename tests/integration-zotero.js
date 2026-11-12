@@ -17,7 +17,7 @@ var IntegrationPromise = (async () => {
     results.running = name; await save();
     const scope = { Zotero, Services, ChromeUtils, IOUtils, PathUtils,
       TitleMerge: Centers.modules.merge, InlineExtra: Centers.modules.inline,
-      Centers, Notes: Centers.modules.notes, Metrics: Centers.modules.metrics,
+      Centers, Notes: Centers.modules.notes, Metrics: Centers.modules.metrics, Metadata: Centers.modules.metadata,
       TEST_ROOT, TEST_RESULT_PATH: PathUtils.join(TEST_ROOT, "test-results", resultFile) };
     Services.scriptloader.loadSubScript(Services.io.newFileURI(Zotero.File.pathToFile(
       PathUtils.join(TEST_ROOT, "tests", file))).spec, scope, "UTF-8");
@@ -36,11 +36,12 @@ var IntegrationPromise = (async () => {
     await Zotero.Libraries.userLibrary.waitForDataLoad("item");
     await wait(() => pane.itemsView?.tree, "Native item table missing");
     await pane.itemsView.waitForLoad();
-    await check("One installed plugin initializes all five modules", async () => {
+    await check("One installed plugin initializes all modules", async () => {
       assert(doc.getElementById("global-search-input"), "Global search missing");
       assert(Centers.modules.inline.controllers.has(w), "Inline editing missing");
       assert(doc.getElementById("title-merge-tools"), "Merge tools missing");
       assert(Centers.modules.metrics.columnKey, "Index registration missing");
+      assert(doc.getElementById("centers-metadata-toolbar"), "Metadata toolbar missing");
     });
     await suite("Title Merge", "suite-title-merge.js", "title-merge.json");
     const { AddonManager } = ChromeUtils.importESModule("resource://gre/modules/AddonManager.sys.mjs");
@@ -153,8 +154,12 @@ var IntegrationPromise = (async () => {
         const node = doc.getElementById(pane.itemsView.id + "-row-" + index);
         assert(node?.querySelector(".centers-index-cell .cell-text")?.textContent === metrics.getIndex(w, index), "Rendered Index did not follow the sort");
       }
+      await wait(() => metrics.windows.get(w)?.manager === pane.itemsView.tree._columns, "Index controls did not settle");
+      const currentManager = pane.itemsView.tree._columns;
+      const indexColumn = currentManager._columns.findIndex(column => column.dataKey === metrics.columnKey);
+      assert(indexColumn >= 0, "Index disappeared after sorting");
       const sort = pane.itemsView.getSortField();
-      await manager.toggleSort(0);
+      await currentManager.toggleSort(indexColumn);
       assert(pane.itemsView.getSortField() === sort, "Index was used as a sort key");
     });
     await check("Expanded child items have no number and do not consume an index", async () => {
@@ -272,14 +277,18 @@ var IntegrationPromise = (async () => {
     });
     const info = { id: Centers.id, version: Centers.version, rootURI: Centers.rootURI };
     await suite("Editable Notes", "suite-notes.js", "notes.json");
+    await suite("Metadata", "suite-metadata.js", "metadata.json");
     await check("Disable cleans up all combined features and re-enable restores one copy", async () => {
       await Centers.shutdown(false);
       assert(!doc.getElementById("global-search-input") && !doc.getElementById("title-merge-tools")
-        && !doc.querySelector(".centers-collection-count"), "Combined UI not removed");
+        && !doc.getElementById("centers-metadata-toolbar") && !doc.querySelector(".centers-collection-count"), "Combined UI not removed");
       await Centers.init(info); Centers.addToWindow(w);
       await wait(() => doc.querySelectorAll("#global-search-input").length === 1 && Centers.modules.metrics.columnKey, "Features not restored");
+      assert(doc.querySelectorAll("#centers-metadata-toolbar").length === 1, "Metadata toolbar not restored");
       const persistedNote = results.suites["Editable Notes"].persisted;
-      assert(persistedNote && Centers.modules.notes.getValue(await Zotero.Items.getAsync(persistedNote.id)) === persistedNote.value, "Notes did not persist across disable and re-enable");
+      assert(persistedNote, "No saved note to check after re-enable");
+      const noteParent = await Zotero.Items.getAsync(persistedNote.id);
+      await wait(() => Centers.modules.notes.getValue(noteParent) === persistedNote.value, "Notes did not persist across disable and re-enable");
       results.lifecycleReady = true;
     });
     await check("Installing Centers pauses three real legacy addons and disabling restores them", async () => {

@@ -44,7 +44,7 @@ var SuitePromise = (async () => {
       const query = url.searchParams.get("query");
       const hits = query?.includes(epd) || query?.includes("31680159") ? [{ doi: epd, title: titleEPD,
         source: "MED", id: "31680159", pageInfo: "D65-D69", pubYear: "2020",
-        journalInfo: { journal: { title: "Nucleic Acids Research" }, volume: "48", issue: "D1", yearOfPublication: 2020, monthOfPublication: 1 },
+        journalInfo: { journal: { title: "Nucleic Acids Research", medlineAbbreviation: "Nucleic Acids Res" }, volume: "48", issue: "D1", yearOfPublication: 2020, monthOfPublication: 1 },
       }] : [];
       return { status: 200, response: { resultList: { result: hits } } };
     }
@@ -120,6 +120,7 @@ var SuitePromise = (async () => {
     await check("Right-click batch updates existing keys and keeps PDFs, collection, short title and Extra", async () => {
       const key = epdItem.key, otherKey = plinkItem.key;
       epdItem.setField("date", "2019-11-04"); epdItem.setField("shortTitle", "My EPD"); epdItem.setField("extra", "My local annotation");
+      epdItem.setField("journalAbbreviation", "Old abbreviation");
       await epdItem.saveTx();
       plinkItem.setField("pages", "1"); await plinkItem.saveTx();
       const pdf = await Zotero.Attachments.importFromFile({ file: PathUtils.join(TEST_ROOT, "tests", "paper.pdf"), parentItemID: epdItem.id });
@@ -128,10 +129,12 @@ var SuitePromise = (async () => {
       dialog = await wait(() => [...Metadata.dialogs.keys()].find(open => !open.closed), "Context menu did not open a dialog");
       await ready(); await lookup();
       assert(cards().length === 2, "Multi-selection was not preserved");
+      assert(field("journalAbbreviation")?.selectedOptions[0].textContent.includes("Nucleic Acids Res 〔Europe PMC · MEDLINE〕"), "Journal abbreviation correction missing from preview");
       await write();
       const current = await Zotero.Items.getAsync(epdItem.id), second = await Zotero.Items.getAsync(plinkItem.id);
       assert(current.key === key && second.key === otherKey && current.inCollection(collection.id), "Original record identity changed");
       assert(current.getField("date").startsWith("2020") && second.getField("pages") === "559-575", "Batch did not update metadata");
+      assert(current.getField("journalAbbreviation") === "Nucleic Acids Res", "Old journal abbreviation was not corrected in place");
       assert(current.getField("shortTitle") === "My EPD" && current.getField("extra") === "My local annotation" && current.getAttachments().includes(pdf.id), "Non-bibliographic data was modified");
       const backups = await IOUtils.getChildren(PathUtils.join(Zotero.DataDirectory.dir, "centers-metadata-backups"));
       assert(backups.length >= 2, "Missing pre-update backups");

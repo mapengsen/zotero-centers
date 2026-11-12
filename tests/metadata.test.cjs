@@ -44,6 +44,22 @@ test("an article number comes from the metadata, independently of the DOI suffix
   assert.equal(core.recommend([sources.crossref({ DOI: record.doi, title: ["Example"] })]).options.pages, undefined);
 });
 
+test("UGENE keeps the publisher's journal title and uses the explicit MEDLINE abbreviation", () => {
+  const sources = loadSources();
+  const doi = "10.1093/bioinformatics/bts091", title = "Unipro UGENE: a unified bioinformatics toolkit";
+  const crossref = sources.crossref({ DOI: doi, title: [title], type: "journal-article", "container-title": ["Bioinformatics"] });
+  const pubmed = sources.europePMC({ doi, title, source: "MED", id: "22368248", journalInfo: {
+    journal: { title: "Bioinformatics (Oxford, England)", medlineAbbreviation: "Bioinformatics", isoabbreviation: "Bioinformatics" },
+  } });
+  const result = core.recommend([crossref, pubmed]).options;
+  assert.equal(result.container[0].value, "Bioinformatics");
+  assert.equal(result.journalAbbreviation[0].value, "Bioinformatics");
+  assert.equal(result.journalAbbreviation[0].sources[0], "Europe PMC · MEDLINE");
+  assert.equal(core.recommend([crossref]).options.journalAbbreviation, undefined);
+  const alternate = sources.crossref({ DOI: doi, title: [title], type: "journal-article", "short-container-title": ["Bioinform."] });
+  assert.equal(core.recommend([alternate, pubmed]).options.journalAbbreviation[0].value, "Bioinformatics");
+});
+
 test("PLINK 2 prefers the confirmed citation locator to a deposited DOI suffix", () => {
   const sources = loadSources();
   const doi = "10.1186/s13742-015-0047-8", title = "Second-generation PLINK";

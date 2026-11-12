@@ -25,6 +25,7 @@ var CentersMetadataSources = (() => {
       fields: {
         title, creators: [...authors, ...editors].filter(Boolean),
         container: plain(record["container-title"]?.[0]) || (type === "preprint" ? plain(record.publisher) : ""),
+        journalAbbreviation: type === "journalArticle" ? plain(record["short-container-title"]?.[0]) : "",
         volume: plain(record.volume), issue: plain(record.issue), pages: plain(record.page || record["article-number"]),
         publisher: plain(record.publisher), conferenceName: plain(record.event?.name),
         ISSN: plain(record.ISSN?.[0]), ISBN: plain(record.ISBN?.[0]), url: doiURL(doi),
@@ -46,14 +47,17 @@ var CentersMetadataSources = (() => {
     if (!title || !doi) return null;
     const journal = record.journalInfo || {};
     const preprint = record.source === "PPR" || array(record.pubTypeList?.pubType).some(type => /preprint/i.test(type));
+    const medlineAbbreviation = !preprint && plain(journal.journal?.medlineAbbreviation);
     // Europe PMC can fill missing day/month with 01. Keep only the supplied issue precision.
     const issueText = plain(journal.dateOfPublication).match(/^\d{4}\s+[A-Za-z]{3}\s+(\d{1,2})$/);
     const issueDate = dateParts([Number(journal.yearOfPublication), Number(journal.monthOfPublication), Number(issueText?.[1])]);
     return {
       source: "Europe PMC", doi, type: preprint ? "preprint" : journal.journal?.title ? "journalArticle" : "",
+      medlineAbbreviation: Boolean(medlineAbbreviation),
       fields: {
         title, creators: array(record.authorList?.author).map(person => creator(person.firstName, person.lastName, person.fullName)).filter(Boolean),
         container: plain(journal.journal?.title), volume: plain(journal.volume), issue: plain(journal.issue),
+        journalAbbreviation: !preprint ? medlineAbbreviation || plain(journal.journal?.isoabbreviation) : "",
         pages: plain(record.pageInfo), ISSN: plain(journal.journal?.issn || journal.journal?.essn),
         PMID: plain(record.pmid || (record.source === "MED" ? record.id : "")), PMCID: plain(record.pmcid),
         url: doiURL(doi),

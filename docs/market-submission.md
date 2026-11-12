@@ -1,8 +1,8 @@
 **zotero-centers** 已收录于 Zotero 中文插件商店，支持 Zotero **10.0.x**。商店通过现有条目自动采集正式发行版。
 
 - 仓库：https://github.com/mapengsen/zotero-centers
-- 正式发行版：https://github.com/mapengsen/zotero-centers/releases/tag/v1.2.1
-- 安装包：https://github.com/mapengsen/zotero-centers/releases/download/v1.2.1/zotero-centers-1.2.1.xpi
+- 正式发行版：https://github.com/mapengsen/zotero-centers/releases/tag/v1.2.2
+- 安装包：https://github.com/mapengsen/zotero-centers/releases/download/v1.2.2/zotero-centers-1.2.2.xpi
 - 插件商店：https://plugins.zotero-chinese.com/
 - 自动更新：https://github.com/mapengsen/zotero-centers/releases/latest/download/updates.json
 - 插件 ID：`zotero-centers@mapengsen.github.io`
@@ -15,6 +15,6 @@
 
 1.2.1 支持按 DOI、标题等批量添加文献，或通过 Zotero 原生向导导入 BibTeX、RIS、Zotero RDF。右键可核对多来源元数据并原位更新已有条目。标识符和标题查询使用公开接口，用户可在预览里查看各来源的返回状态。
 
-Windows / Zotero 10.0.8 独立文库验证见 `docs/validation-1.2.1.json`，包括打开原生文件导入向导、导入 RIS、查重、原位元数据更新和备份。
+1.2.2 在元数据预览中加入「期刊简称」，优先推荐来源提供的 MEDLINE 简称。Windows / Zotero 10.0.8 独立文库通过 92 项集成检查，包含简称预览和原位修正。验证报告见 `docs/validation-1.2.2.json`。
 
 收录记录见 [中文插件商店 #357](https://github.com/zotero-chinese/zotero-plugins/issues/357) 和 [插件爬虫 #306](https://github.com/syt2/zotero-addons-scraper/pull/306)。

@@ -1,4 +1,6 @@
-zotero-centers 1.2.1 在「批量添加文献」中加入「从文件导入…」，打开 Zotero 原生向导，支持 BibTeX、RIS、Zotero RDF 等格式。
+zotero-centers 1.2.2 在元数据预览中加入「期刊简称」，优先推荐 MEDLINE 的标准简称。例如 Unipro UGENE 的期刊和简称均为 Bioinformatics。
+
+1.2.1 在「批量添加文献」中加入「从文件导入…」，打开 Zotero 原生向导，支持 BibTeX、RIS、Zotero RDF 等格式。
 
 1.2 系列同时支持通过标识符或标题批量添加文献和原位更新元数据。
 
@@ -8,6 +10,6 @@ zotero-centers 1.2.1 在「批量添加文献」中加入「从文件导入…�
 
 保留全局搜索、短标题/其他/笔记直接编辑、同标题一键批量合并、文库与所有子目录总数。
 
-适配 Zotero 10.0.x。已在 Windows / Zotero 10.0.8 的独立文库验证原生向导入口和 RIS 文件导入。验证报告见 `docs/validation-1.2.1.json`。
+适配 Zotero 10.0.x。验证报告见 `docs/validation-1.2.2.json`。
 
 可在 Zotero 插件管理器检查更新，或下载本页 XPI 覆盖安装。

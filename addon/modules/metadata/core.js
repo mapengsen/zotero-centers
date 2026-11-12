@@ -6,7 +6,7 @@ var CentersMetadataCore = (() => {
     "book-chapter": "bookSection", dissertation: "thesis", report: "report", dataset: "dataset",
   };
   const fields = {
-    title: "标题", creators: "作者与编者", DOI: "DOI", container: "期刊／会议录／书名／存档库",
+    title: "标题", creators: "作者与编者", DOI: "DOI", container: "期刊／会议录／书名／存档库", journalAbbreviation: "期刊简称",
     date: "发表日期", volume: "卷", issue: "期", pages: "页码／文章编号", publisher: "出版商",
     conferenceName: "会议名称", ISSN: "ISSN", ISBN: "ISBN", PMID: "PMID", PMCID: "PMCID", url: "网址",
   };
@@ -128,8 +128,10 @@ var CentersMetadataCore = (() => {
         const articleNumber = field === "pages" && record.articleNumber;
         const suffix = record.doi.slice(record.doi.indexOf("/") + 1);
         const possibleDOISuffix = articleNumber && plain(value).toLowerCase() === suffix && !/^[a-z]{0,3}\d+$/i.test(value);
-        const basis = possibleDOISuffix ? "登记编号与 DOI 后缀相同，待核对" : articleNumber ? "文章编号" : "";
-        add(field, value, record, rank + (citationField && hasIssue ? 60 : 0) - (possibleDOISuffix ? 150 : 0), basis);
+        const medlineAbbreviation = field === "journalAbbreviation" && record.medlineAbbreviation;
+        const basis = medlineAbbreviation ? "MEDLINE" : possibleDOISuffix ? "登记编号与 DOI 后缀相同，待核对" : articleNumber ? "文章编号" : "";
+        const evidenceRank = (citationField && hasIssue) || medlineAbbreviation ? 60 : 0;
+        add(field, value, record, rank + evidenceRank - (possibleDOISuffix ? 150 : 0), basis);
       }
       add("DOI", record.doi, record, rank);
       for (const date of record.dates) {

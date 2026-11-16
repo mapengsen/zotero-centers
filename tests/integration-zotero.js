@@ -242,6 +242,26 @@ var IntegrationPromise = (async () => {
       assert(docIDs().join() === String(groupItem.id) && indexTexts().join() === "1", "Native refinement or Index failed");
       doc.getElementById("zotero-tb-search").searchTextbox.value = ""; await pane.search();
     });
+    await check("Global search displays new results after the collections tree rebuilds library rows", async () => {
+      await search.clear(search.windows.get(w));
+      await pane.collectionsView.selectByID("L" + parent.libraryID);
+      const previousRow = pane.itemsView.collectionTreeRows[0];
+      await pane.collectionsView.reload();
+      const selected = pane.collectionsView.waitForSelect();
+      pane.collectionsView.selection.selectEventsSuppressed = false;
+      await selected;
+      assert(pane.getCollectionTreeRows()[0] !== previousRow && pane.itemsView.collectionTreeRows[0] === previousRow,
+        "Fixture must rebuild the sidebar row while the item tree keeps the original");
+      await searchUI("CentersNoteMarker");
+      assert(doc.querySelector(".global-search-status").textContent === "1 篇" && docIDs().join() === String(a.id),
+        "Search count changed but the item tree kept its old rows");
+      await searchUI("CentersSharedMarker");
+      assert(docIDs().length === 2 && docIDs().includes(a.id) && docIDs().includes(groupItem.id), "Changing query lost cross-library results");
+      await search.clear(search.windows.get(w));
+      assert(docIDs().includes(b.id), "Clearing search kept the filtered library results");
+      await pane.collectionsView.selectByID("C" + parent.id);
+      await searchUI("CentersSharedMarker");
+    });
     await check("Global-search results still allow inline editing and refresh the search index", async () => {
       const inline = Centers.modules.inline.controllers.get(w);
       assert(await inline.open(a, pane.itemsView, "shortTitle"), "Inline editor missing in search results");
@@ -275,16 +295,115 @@ var IntegrationPromise = (async () => {
       grandchild.parentID = sibling.id; await grandchild.saveTx();
       await wait(() => count(parent.id) === 5 && count(child.id) === 2 && count(sibling.id) === 2 && count(grandchild.id) === 1, "Ancestor totals did not follow the moved subtree");
     });
+    await check("One toolbar click collapses nested directories in personal and group libraries", async () => {
+      const tree = pane.collectionsView;
+      const groupChild = await makeCollection("Centers 群组子目录", groupFolder, group.libraryID);
+      const personalChild = await makeCollection("Centers 折叠三级目录", child);
+      const visible = id => tree.getRowIndexByID(id);
+      const open = id => visible(id) !== false && tree.isContainerOpen(visible(id));
+      const parentID = "C" + parent.id, childID = "C" + child.id, groupID = "C" + groupFolder.id;
+      const libraryIDs = [parent.libraryID, group.libraryID].map(id => "L" + id);
+      await tree.selectByID("C" + groupChild.id);
+      await tree.selectByID("C" + personalChild.id);
+      assert(libraryIDs.every(open) && [parentID, childID, groupID].every(open), "Nested fixture rows were not expanded");
+      const button = doc.getElementById("centers-collapse-collections");
+      assert(button?.previousElementSibling.id === "zotero-tb-collection-add", "Collapse button missing from the left toolbar");
+      assert(button.getBoundingClientRect().width > 0, "Collapse button was not visible");
+      button.click();
+      await wait(() => !button.disabled && !open(parentID) && !open(groupID), "One click did not collapse both libraries' folders");
+      assert(libraryIDs.every(open) && visible(childID) === false && visible("C" + groupChild.id) === false,
+        "Collapse hid a library root or left a child visible");
+      assert(pane.getCollectionTreeRows()[0].id === parentID && pane.itemsView.collectionTreeRows[0].id === parentID,
+        "Selection did not move to the visible parent");
+      await tree.toggleOpenState(visible(parentID));
+      assert(visible(childID) !== false && !open(childID) && visible("C" + personalChild.id) === false,
+        "Reopening the parent restored its old expanded descendants");
+      a.setField("extra", "CentersSharedMarker"); await a.saveTx();
+      await searchUI("CentersSharedMarker");
+      assert(docIDs().includes(a.id) && docIDs().includes(groupItem.id) && docIDs().length === 2,
+        "Collapse fixture did not start with two search results");
+      button.click();
+      await wait(() => !button.disabled && !open(parentID), "Collapse did not complete during global search");
+      assert(docIDs().includes(a.id) && docIDs().includes(groupItem.id) && docIDs().length === 2,
+        "Collapsing folders lost active search results");
+      await search.clear(search.windows.get(w));
+    });
+    await check("Automatically locates selected search results without changing unrelated folder states", async () => {
+      const tree = pane.collectionsView;
+      const root = await makeCollection("Centers locate A root");
+      const nested = await makeCollection("Centers locate target", root);
+      const nestedChild = await makeCollection("Centers locate target child", nested);
+      const otherTarget = await makeCollection("Centers locate B second target");
+      const untouchedOpen = await makeCollection("Centers locate C keep expanded");
+      await makeCollection("Centers locate expanded child", untouchedOpen);
+      const untouchedClosed = await makeCollection("Centers locate D keep collapsed");
+      await makeCollection("Centers locate collapsed child", untouchedClosed);
+      const filed = await makeItem("CentersLocateProbe filed", nested);
+      filed.addToCollection(otherTarget.id); await filed.saveTx();
+      const unfiled = new Zotero.Item("journalArticle");
+      unfiled.setField("title", "CentersLocateProbe unfiled"); await unfiled.saveTx();
+      const row = collection => tree.getRowIndexByID("C" + collection.id);
+      const open = collection => row(collection) !== false && tree.isContainerOpen(row(collection));
+      const background = collection => {
+        const element = doc.getElementById(`${tree.id}-row-${row(collection)}`);
+        return element && w.getComputedStyle(element).backgroundColor;
+      };
+      await tree.selectByID("L" + root.libraryID);
+      if (open(nested)) await tree.toggleOpenState(row(nested));
+      if (open(root)) await tree.toggleOpenState(row(root));
+      if (!open(untouchedOpen)) await tree.toggleOpenState(row(untouchedOpen));
+      if (open(untouchedClosed)) await tree.toggleOpenState(row(untouchedClosed));
+      assert(row(nested) === false && open(untouchedOpen) && !open(untouchedClosed), "Folder fixture states were not set");
+
+      const toggle = doc.getElementById("centers-auto-locate-collections");
+      const collections = Centers.modules.collections;
+      assert(Zotero.Prefs.get(collections.autoLocatePref, true) === undefined, "Fresh profile must have no saved auto-locate choice");
+      assert(toggle?.getBoundingClientRect().width > 0 && toggle.getAttribute("aria-pressed") === "true", "Auto-locate toggle missing or disabled by default");
+      await searchUI("CentersLocateProbe");
+      const normalBackground = background(otherTarget);
+      await pane.itemsView.selectItems([filed.id]);
+      try {
+        await wait(() => toggle.getAttribute("aria-pressed") === "true" && open(nested)
+          && background(nested) && background(nested) === background(otherTarget)
+          && background(otherTarget) !== normalBackground, "Both target folders were not revealed and highlighted");
+        assert(row(nestedChild) !== false && open(untouchedOpen) && !open(untouchedClosed), "Unrelated folder state changed");
+        assert(pane.getCollectionTreeRows()[0].id === "L" + root.libraryID && docIDs().includes(filed.id)
+          && docIDs().includes(unfiled.id) && docIDs().length === 2
+          && pane.itemsView.getSelectedItems(true).join() === String(filed.id), "Locating folders changed the active global search or selection");
+
+        const highlight = background(nested);
+        await tree.setHighlightedRows(["C" + nested.id]);
+        await tree.setHighlightedRows();
+        assert(background(nested) === highlight, "Releasing the native Ctrl highlight cleared the automatic highlight");
+        await pane.itemsView.selectItems([unfiled.id]);
+        await wait(() => background(nested) !== highlight, "Selecting an unfiled item did not clear the prior highlight");
+        assert(open(nested) && open(untouchedOpen) && !open(untouchedClosed), "Selecting an unfiled item changed folder states");
+        await pane.itemsView.selectItems([filed.id]);
+        await wait(() => background(nested) === highlight, "Selecting another document did not restore its highlight");
+      } finally {
+        if (toggle.getAttribute("aria-pressed") === "true") toggle.click();
+        await search.clear(search.windows.get(w));
+      }
+      assert(toggle.getAttribute("aria-pressed") === "false" && background(otherTarget) === normalBackground, "Turning off auto-locate did not clear its highlights");
+      collections.removeFromWindow(w);
+      collections.addToWindow(w);
+      assert(Zotero.Prefs.get(collections.autoLocatePref, true) === false
+        && doc.getElementById(toggle.id)?.getAttribute("aria-pressed") === "false", "Reopening the toolbar lost the saved disabled setting");
+    });
     const info = { id: Centers.id, version: Centers.version, rootURI: Centers.rootURI };
     await suite("Editable Notes", "suite-notes.js", "notes.json");
     await suite("Metadata", "suite-metadata.js", "metadata.json");
     await check("Disable cleans up all combined features and re-enable restores one copy", async () => {
       await Centers.shutdown(false);
       assert(!doc.getElementById("global-search-input") && !doc.getElementById("title-merge-tools")
-        && !doc.getElementById("centers-metadata-toolbar") && !doc.querySelector(".centers-collection-count"), "Combined UI not removed");
+        && !doc.getElementById("centers-metadata-toolbar") && !doc.getElementById("centers-collapse-collections")
+        && !doc.getElementById("centers-auto-locate-collections")
+        && !doc.querySelector(".centers-collection-count"), "Combined UI not removed");
       await Centers.init(info); Centers.addToWindow(w);
       await wait(() => doc.querySelectorAll("#global-search-input").length === 1 && Centers.modules.metrics.columnKey, "Features not restored");
       assert(doc.querySelectorAll("#centers-metadata-toolbar").length === 1, "Metadata toolbar not restored");
+      assert(doc.querySelectorAll("#centers-collapse-collections").length === 1, "Collapse toolbar not restored");
+      assert(doc.querySelectorAll("#centers-auto-locate-collections").length === 1, "Auto-locate toolbar not restored");
       const persistedNote = results.suites["Editable Notes"].persisted;
       assert(persistedNote, "No saved note to check after re-enable");
       const noteParent = await Zotero.Items.getAsync(persistedNote.id);

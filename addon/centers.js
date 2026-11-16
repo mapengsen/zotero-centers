@@ -58,9 +58,11 @@ var CentersPlugin = {
     const inline = this.loadModule("inline-extra", ["inline-extra.js"], "InlineExtraPlugin");
     const merge = this.loadModule("title-merge", ["core.js", "engine.js", "plugin.js"], "TitleMergePlugin");
     const metadata = this.loadModule("metadata", ["core.js", "sources.js", "engine.js", "plugin.js"], "CentersMetadataPlugin");
+    const collections = this.loadModule("collections", ["plugin.js"], "CentersCollectionsPlugin");
     this.modules = { search: search.plugin, inline: inline.plugin, merge: merge.plugin, metadata: metadata.plugin,
-      notes: CentersNotes, metrics: CentersMetrics };
+      collections: collections.plugin, notes: CentersNotes, metrics: CentersMetrics };
     search.plugin.init({ ...info, rootURI: search.rootURI });
+    collections.plugin.init(search.plugin);
     await merge.plugin.init({ ...info, rootURI: merge.rootURI });
     await metadata.plugin.init(metadata.rootURI);
     await CentersNotes.init(info, inline.plugin);
@@ -71,18 +73,18 @@ var CentersPlugin = {
   addToWindow(window) {
     if (!this.ready || this.windows.has(window)) return;
     this.windows.add(window);
-    for (const name of ["search", "inline", "merge", "metrics", "metadata"]) this.modules[name]?.addToWindow(window);
+    for (const name of ["search", "inline", "merge", "metrics", "metadata", "collections"]) this.modules[name]?.addToWindow(window);
   },
 
   async removeFromWindow(window) {
     if (!this.windows.has(window)) return;
-    for (const name of ["inline", "merge", "search", "metrics", "metadata"]) await this.modules[name]?.removeFromWindow(window);
+    for (const name of ["collections", "inline", "merge", "search", "metrics", "metadata"]) await this.modules[name]?.removeFromWindow(window);
     this.windows.delete(window);
   },
 
   async shutdown(restoreLegacy = false) {
     this.ready = false;
-    for (const name of ["metadata", "inline", "merge", "search", "metrics", "notes"]) await this.modules[name]?.shutdown();
+    for (const name of ["collections", "metadata", "inline", "merge", "search", "metrics", "notes"]) await this.modules[name]?.shutdown();
     this.windows.clear();
     if (restoreLegacy) await this.restoreLegacy();
   }

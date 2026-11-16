@@ -217,8 +217,6 @@ var GlobalSearchPlugin = {
         items: pane.getSelectedItems(true)
       };
       state.active = true;
-      await pane.clearQuicksearch(true);
-      pane.tagSelector?.clearTagSelection();
     }
     state.resultsByLibrary = new Map();
     for (const result of results) {
@@ -228,22 +226,35 @@ var GlobalSearchPlugin = {
     const libraries = Zotero.Libraries.getAll().filter(l => ["user", "group"].includes(l.libraryType));
     const ids = libraries.filter(l => state.resultsByLibrary.has(l.libraryID)).map(l => "L" + l.libraryID);
     if (!ids.length) ids.push("L" + Zotero.Libraries.userLibraryID);
+    const prepareRow = row => {
+      this.patchSource(state, row);
+      if (starting) {
+        row.setSearch("");
+        row.setTags(new Set());
+        row.setAdvancedSearch(null);
+      }
+      row.clearCache();
+    };
     state.changing = true;
     try {
+      if (starting) {
+        await pane.clearQuicksearch(true);
+        pane.tagSelector?.clearTagSelection();
+      }
       for (const id of ids) {
         const index = pane.collectionsView.getRowIndexByID(id);
         if (index === false) throw new Error("Library is not visible in the collection tree: " + id);
-        const row = pane.collectionsView.getRow(index);
-        this.patchSource(state, row);
-        if (starting) {
-          row.setSearch("");
-          row.setTags(new Set());
-          row.setAdvancedSearch(null);
-        }
-        row.clearCache();
+        prepareRow(pane.collectionsView.getRow(index));
       }
       await this.selectSources(state, ids);
-      await pane.itemsView.refreshAndMaintainSelection();
+      const view = pane.itemsView;
+      if (view.collectionTreeRows.length !== ids.length || view.collectionTreeRows.some(row => !ids.includes(row.id))) {
+        throw new Error("Item list did not switch to the search libraries");
+      }
+      // A sidebar rebuild replaces its row objects. Zotero keeps the existing
+      // item-list rows when their IDs are unchanged, so prepare those objects too.
+      for (const row of view.collectionTreeRows) prepareRow(row);
+      await view.refreshAndMaintainSelection();
     }
     finally { state.changing = false; }
   },
